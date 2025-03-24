@@ -121,9 +121,9 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "yearly_39.99_nottrial",
+          "productID" : "yearly_39.99_nottrial.",
           "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "yearly_39.99_nottrial",
+          "referenceName" : "yearly_39.99_nottrial.",
           "subscriptionGroupID" : "2A6C3C8D",
           "type" : "RecurringSubscription",
           "winbackOffers" : [

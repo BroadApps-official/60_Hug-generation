@@ -19,7 +19,7 @@ struct PayWall: View {
                     ZStack {
                         
                         VStack {
-                            Image("paywallImage")
+                            Image("payWallImage")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(maxWidth: .infinity)
@@ -53,7 +53,7 @@ struct PayWall: View {
                                     HStack {
                                         Image(systemName: "sparkles")
                                             .font(.caption1Regular)
-                                            .foregroundColor(.accentSecondary)
+                                            .foregroundColor(.accentPrimary)
                                         
                                         Text("Access to all effects")
                                             .font(.subheadlineEmphasized)
@@ -64,7 +64,7 @@ struct PayWall: View {
                                     HStack {
                                         Image(systemName: "sparkles")
                                             .font(.caption1Regular)
-                                            .foregroundColor(.accentSecondary)
+                                            .foregroundColor(.accentPrimary)
                                         
                                         Text("Unlimited generation")
                                             .font(.subheadlineEmphasized)
@@ -75,7 +75,7 @@ struct PayWall: View {
                                     HStack {
                                         Image(systemName: "sparkles")
                                             .font(.caption1Regular)
-                                            .foregroundColor(.accentSecondary)
+                                            .foregroundColor(.accentPrimary)
                                         
                                         Text("Access to all functions")
                                             .font(.subheadlineEmphasized)
@@ -223,8 +223,8 @@ struct SubscriptionButton: View {
                     .padding(.horizontal, 8)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(plan.title) \(subscriptionManager.getProductPrice(for: plan.productId))")
-                        .font(.bodyRegular)
+                    Text("Just \(subscriptionManager.getProductPrice(for: plan.productId)) / \(plan.title)")
+                        .font(.bodyEmphasized)
                         .foregroundColor(.labelPrimary)
                     
                     Text(plan.subtitle)
@@ -235,17 +235,6 @@ struct SubscriptionButton: View {
                 
                 Spacer()
                 
-                Rectangle()
-                    .frame(width: 1, height: 32)
-                    .foregroundColor(.separatorPrimary)
-                
-                
-                Text(plan.freeDays)
-                    .font(.caption1Regular)
-                    .foregroundColor(.labelQuaternary)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 54)
-                    .padding(.horizontal)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 56)
@@ -265,28 +254,21 @@ enum SubscriptionPlan: String, CaseIterable {
     
     var title: String {
         switch self {
-        case .yearly: return "Yearly"
-        case .weekly: return "Weekly"
+        case .yearly: return "Year"
+        case .weekly: return "Week"
         }
     }
     
     var subtitle: String {
         switch self {
-        case .yearly: return "$0.77 / week"
-        case .weekly: return "$6.99 / week"
+        case .yearly: return "Auto renewable. Cancel anytime."
+        case .weekly: return "Auto renewable. Cancel anytime."
         }
     }
-    
-    var freeDays: String {
-        switch self {
-        case .yearly: return "0 days\nfree"
-        case .weekly: return "0 days\nfree"
-        }
-    }
-    
+        
     var productId: String {
         switch self {
-        case .yearly: return "yearly_39.99_nottrial"
+        case .yearly: return "yearly_39.99_nottrial."
         case .weekly: return "week_6.99_nottrial"
         }
     }

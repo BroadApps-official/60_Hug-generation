@@ -2,6 +2,10 @@ import SwiftUI
 
 struct HistoryView: View {
     
+    @FetchRequest(sortDescriptors: []) var generationItems: FetchedResults<Generations>
+
+    @Environment(\.managedObjectContext) var moc
+    
     @State private var isPresented = false
     @State private var selectedSegment = 0
     

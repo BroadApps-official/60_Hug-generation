@@ -106,3 +106,47 @@ class SubscriptionManager: ObservableObject {
     return priceString
   }
 }
+
+import SwiftUI
+import ApphudSDK
+
+struct ProductsView: View {
+    @State private var products: [ApphudProduct] = []
+    
+    var body: some View {
+        VStack {
+            Button("Загрузить продукты") {
+                loadProducts()
+                
+            }
+            .padding()
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(8)
+        }
+    }
+    
+    private func loadProducts() {
+        Apphud.paywallsDidLoadCallback { paywalls, error in
+            if let paywall = paywalls.first {
+                self.products = paywall.products
+                
+                print("✅ Найдено \(products.count) продуктов:")
+                for product in products {
+                    let productId = product.skProduct?.productIdentifier ?? "Unknown ID"
+                    let price = product.skProduct?.price ?? 0
+                    let currency = product.skProduct?.priceLocale.currencySymbol ?? "$"
+                    print(" - Product ID: \(productId), Price: \(currency)\(price)")
+                }
+            } else {
+                print("❌ Paywall не найден")
+            }
+        }
+    }
+}
+
+struct ProductsView_Previews: PreviewProvider {
+    static var previews: some View {
+        ProductsView()
+    }
+}

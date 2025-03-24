@@ -187,9 +187,8 @@ class NetworkManager {
             "generationId": generationId
         ]
         
-        let token = bearerToken
         let headers: HTTPHeaders = [
-            "Authorization": "Bearer \(token)"
+            "Authorization": "Bearer \(bearerToken)"
         ]
         
         // Выполняем GET запрос
@@ -222,3 +221,20 @@ class NetworkManager {
     
     
 }
+
+
+
+
+/*
+curl -X POST "https://vewapnew.online/api/generate/txt2video" \
+-H "Authorization: Bearer rE176kzVVqjtWeGToppo4lRcbz3HRLoBrZREEvgQ8fKdWuxySCw6tv52BdLKBkZTOHWda5ISwLUVTyRoZEF0A33Xpk63lF9wTCtDxOs8XK3YArAiqIXVb7ZS4IK61TYPQMu5WqzFWwXtZc1jo8w" \
+-H "Content-Type: multipart/form-data" \
+-F "promptText= dancingbananas" \
+-F "userId=34F6DF69-9D4D-4B02-B801-B5FA211DCE08" \
+-F "appId=com.elv.hugg3n3r4t10n"
+
+
+curl -X GET "https://vewapnew.online/api/generationStatus?generationId=26262d9b-a3c0-4aa1-8951-91414a9bb9c0" \
+-H "Authorization: Bearer rE176kzVVqjtWeGToppo4lRcbz3HRLoBrZREEvgQ8fKdWuxySCw6tv52BdLKBkZTOHWda5ISwLUVTyRoZEF0A33Xpk63lF9wTCtDxOs8XK3YArAiqIXVb7ZS4IK61TYPQMu5WqzFWwXtZc1jo8w" \
+-H "Accept: application/json"
+*/

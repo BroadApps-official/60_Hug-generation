@@ -3,8 +3,7 @@ import AVKit
 
 struct MainGenerationView: View {
     
-    @FetchRequest(sortDescriptors: []) var imagesToVideo: FetchedResults<ImagesToVideo>
-    @FetchRequest(sortDescriptors: []) var textToVideo: FetchedResults<TextToVideo>
+    @FetchRequest(sortDescriptors: []) var generetionItems: FetchedResults<Generations>
     @Environment(\.managedObjectContext) var moc
     
     @StateObject private var viewModel = TemplatesViewModel()
@@ -451,7 +450,6 @@ struct MainGenerationView: View {
         }
         .fullScreenCover(isPresented: $navigateToMergedView) {
             GeneratedView(selectedCategoryTitleEn: $selectedCategoryTitleEn, selectedImage1: $selectedImage1, selectedImage2: $selectedImage2, videoURL: $videoURL)
-            
         }
         .fullScreenCover(isPresented: $navigateToTextGeneratedView) {
             TextGeneratedView(videoURL: $videoURL, promptText: $promptText)
