@@ -14,6 +14,7 @@ struct AIHugApp: App {
        Apphud.start(apiKey: "app_tPd8B4MB7HqryPnqmePvYcN3CbKqPc")
        Apphud.setDeviceIdentifiers(idfa: nil, idfv: UIDevice.current.identifierForVendor?.uuidString)
        fetchIDFA()
+        setupCache()
      }
     
     var body: some Scene {
@@ -42,4 +43,11 @@ struct AIHugApp: App {
         }
       }
     }
+    
+    private func setupCache() {
+            let memoryCapacity = 50 * 1024 * 1024 // 50MB в памяти
+            let diskCapacity = 500 * 1024 * 1024 // 500MB на диске
+            let cache = URLCache(memoryCapacity: memoryCapacity, diskCapacity: diskCapacity, diskPath: "videoCache")
+            URLCache.shared = cache
+        }
 }

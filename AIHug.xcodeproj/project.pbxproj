@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		1C0540BF2D7A4FFD00C434B6 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 1C0540BE2D7A4FFD00C434B6 /* Lottie */; };
 		1C0541522D7E345100C434B6 /* ApphudSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 1C0541512D7E345100C434B6 /* ApphudSDK */; };
-		1C0541572D7E37EA00C434B6 /* StoreKitConfig.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 1C0541562D7E37EA00C434B6 /* StoreKitConfig.storekit */; };
 		1C05427A2D7EE86A00C434B6 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 1C0542792D7EE86A00C434B6 /* Alamofire */; };
 /* End PBXBuildFile section */
 
@@ -27,12 +26,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1C0541562D7E37EA00C434B6 /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
 		1C05415C2D7E409B00C434B6 /* AIHug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIHug.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1C25958F2D80BD87003392FB /* Exceptions for "AIHug" folder in "AIHug" target */ = {
+		1C5705E92D93F6C50040CBD6 /* Exceptions for "AIHug" folder in "AIHug" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -45,7 +43,7 @@
 		1C58BC8D2D78F7C40092BDC2 /* AIHug */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				1C25958F2D80BD87003392FB /* Exceptions for "AIHug" folder in "AIHug" target */,
+				1C5705E92D93F6C50040CBD6 /* Exceptions for "AIHug" folder in "AIHug" target */,
 			);
 			path = AIHug;
 			sourceTree = "<group>";
@@ -70,7 +68,6 @@
 			isa = PBXGroup;
 			children = (
 				1C58BC8D2D78F7C40092BDC2 /* AIHug */,
-				1C0541562D7E37EA00C434B6 /* StoreKitConfig.storekit */,
 				1C05415C2D7E409B00C434B6 /* AIHug.app */,
 			);
 			sourceTree = "<group>";
@@ -148,7 +145,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1C0541572D7E37EA00C434B6 /* StoreKitConfig.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

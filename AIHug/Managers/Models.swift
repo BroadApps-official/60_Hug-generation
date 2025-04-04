@@ -23,7 +23,6 @@ class TemplatesViewModel: ObservableObject {
                     if let json = data as? [String: Any],
                        let jsonData = try? JSONSerialization.data(withJSONObject: json["data"] ?? []),
                        let decoded = try? JSONDecoder().decode([Template].self, from: jsonData) {
-
                         self.templates = decoded
                     }
                 case .failure(let error):
@@ -32,9 +31,14 @@ class TemplatesViewModel: ObservableObject {
             }
         }
     }
+
+    /// Группирует шаблоны по категории
+    var groupedTemplates: [String: [Template]] {
+        Dictionary(grouping: templates, by: { $0.categoryTitleEn })
+    }
 }
 
-// Структура для декодирования ответа
+
 struct GenerationStatusResponse: Decodable {
     let error: Bool
     let messages: [String]
@@ -50,7 +54,6 @@ struct GenerationData: Decodable {
     let maxGenerations: Int
 }
 
-// Ошибки сети
 enum NetworkError: Error {
     case invalidURL
     case noData

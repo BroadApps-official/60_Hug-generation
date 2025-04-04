@@ -11,7 +11,7 @@ class NetworkManager {
     private let generationStatusURL = "https://vewapnew.online/api/generationStatus"
     private let bearerToken = "rE176kzVVqjtWeGToppo4lRcbz3HRLoBrZREEvgQ8fKdWuxySCw6tv52BdLKBkZTOHWda5ISwLUVTyRoZEF0A33Xpk63lF9wTCtDxOs8XK3YArAiqIXVb7ZS4IK61TYPQMu5WqzFWwXtZc1jo8w"
     private let bundleID = "com.elv.hugg3n3r4t10n"
-    private let userID = UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"
+    private let userID = "F452345B-BEEC-43EA-AF96-000000000"/*UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"*/
     private let isNew: Bool = true
     private var appName: String = "com.elv.hugg3n3r4t10n"
     private var ai: [String] = ["pika", "pv"]
@@ -63,6 +63,7 @@ class NetworkManager {
                 switch response.result {
                 case .success(let data):
                     completion(.success(data))
+                    print("✅ success")
                 case .failure(let error):
                     completion(.failure(error))
                 }
@@ -89,6 +90,8 @@ class NetworkManager {
                 switch response.result {
                 case .success(let data):
                     completion(.success(data))
+                    print("✅ success2")
+
                 case .failure(let error):
                     completion(.failure(error))
                 }
@@ -110,7 +113,6 @@ class NetworkManager {
         
         AF.upload(
             multipartFormData: { multipartFormData in
-                // Добавляем параметры
                 for (key, value) in parameters {
                     if let stringValue = value as? String {
                         multipartFormData.append(Data(stringValue.utf8), withName: key)
@@ -119,7 +121,6 @@ class NetworkManager {
                     }
                 }
                 
-                // Добавляем изображение, если оно есть
                 if let imageURL = imageURL, let imageData = try? Data(contentsOf: imageURL) {
                     multipartFormData.append(imageData, withName: "image", fileName: imageURL.lastPathComponent, mimeType: "image/jpeg")
                 }
@@ -180,6 +181,62 @@ class NetworkManager {
             }
         }
     }
+    
+    func generateVideoWithPhotoRef(promptText: String, image: UIImage, completion: @escaping (Result<String, Error>) -> Void) {
+        let url = "https://vewapnew.online/api/generate/img2video"
+        
+        let parameters: [String: String] = [
+            "promptText": promptText,
+            "userId": userID,
+            "appId": bundleID
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(bearerToken)"
+        ]
+        
+        var imageData: Data?
+        var mimeType: String?
+        
+        if let pngData = image.pngData() {
+            imageData = pngData
+            mimeType = "image/png"
+        } else if let jpegData = image.jpegData(compressionQuality: 1.0) {
+            imageData = jpegData
+            mimeType = "image/jpeg"
+        }
+        
+        guard let finalImageData = imageData, let finalMimeType = mimeType else {
+            completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to data"])))
+            return
+        }
+        
+        AF.upload(multipartFormData: { multipartFormData in
+            for (key, value) in parameters {
+                if let data = value.data(using: .utf8) {
+                    multipartFormData.append(data, withName: key)
+                }
+            }
+
+            multipartFormData.append(finalImageData, withName: "image", fileName: "image.\(mimeType == "image/png" ? "png" : "jpg")", mimeType: finalMimeType)
+        }, to: url, method: .post, headers: headers)
+        .validate()
+        .responseJSON { response in
+            switch response.result {
+            case .success(let data):
+                if let json = data as? [String: Any],
+                   let dataDict = json["data"] as? [String: Any],
+                   let generationId = dataDict["generationId"] as? String {
+                    completion(.success(generationId))
+                } else {
+                    completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
 
     
     func getGenerationStatus(generationId: String, completion: @escaping (Result<String, Error>) -> Void) {
