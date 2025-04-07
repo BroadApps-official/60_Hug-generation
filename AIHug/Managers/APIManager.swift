@@ -11,7 +11,7 @@ class NetworkManager {
     private let generationStatusURL = "https://vewapnew.online/api/generationStatus"
     private let bearerToken = "rE176kzVVqjtWeGToppo4lRcbz3HRLoBrZREEvgQ8fKdWuxySCw6tv52BdLKBkZTOHWda5ISwLUVTyRoZEF0A33Xpk63lF9wTCtDxOs8XK3YArAiqIXVb7ZS4IK61TYPQMu5WqzFWwXtZc1jo8w"
     private let bundleID = "com.elv.hugg3n3r4t10n"
-    private let userID = "F452345B-BEEC-43EA-AF96-000000000"/*UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"*/
+    private let userID = UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"
     private let isNew: Bool = true
     private var appName: String = "com.elv.hugg3n3r4t10n"
     private var ai: [String] = ["pika", "pv"]

@@ -53,7 +53,7 @@ struct GenerateView: View {
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack {
-                        
+                        /*
                         HStack {
                             Button {
                                 selectedSegment = 0
@@ -89,7 +89,7 @@ struct GenerateView: View {
                         .cornerRadius(9)
                         .padding(.horizontal)
                         .padding(.top, 10)
-                        
+                        */
                         if selectedSegment == 1 {
                             HStack {
                                 Text("Enter prompt")
@@ -120,16 +120,35 @@ struct GenerateView: View {
                                     }
                                     .frame(height: 120)
                                 }
-                                
-                                TextEditor(text: $promptText)
-                                    .transparentScrolling()
-                                    .foregroundColor(.labelPrimary)
-                                    .font(.bodyRegular)
-                                    .frame(height: 120, alignment: .center)
-                                    .padding(10)
-                                    .background(RoundedRectangle(cornerRadius: 14)
-                                        .fill(Color.backgroundTertiary))
-                                    .padding(.horizontal, 16)
+                                if #available(iOS 15.0, *) {
+                                    TextEditor(text: $promptText)
+                                        .transparentScrolling()
+                                        .foregroundColor(.labelPrimary)
+                                        .font(.bodyRegular)
+                                        .frame(height: 120, alignment: .center)
+                                        .padding(10)
+                                        .background(RoundedRectangle(cornerRadius: 14)
+                                            .fill(Color.backgroundTertiary))
+                                        .padding(.horizontal, 16)
+                                        .toolbar {
+                                            ToolbarItemGroup(placement: .keyboard) {
+                                                Spacer()
+                                                Button("Done") {
+                                                    hideKeyboard()
+                                                }
+                                            }
+                                        }
+                                } else {
+                                    TextEditor(text: $promptText)
+                                        .transparentScrolling()
+                                        .foregroundColor(.labelPrimary)
+                                        .font(.bodyRegular)
+                                        .frame(height: 120, alignment: .center)
+                                        .padding(10)
+                                        .background(RoundedRectangle(cornerRadius: 14)
+                                            .fill(Color.backgroundTertiary))
+                                        .padding(.horizontal, 16)
+                                }
                             }
                             .overlay(
                                 HStack {
@@ -256,6 +275,10 @@ struct GenerateView: View {
                                         case .failure(let error):
                                             print("❌ Ошибка: \(error.localizedDescription)")
                                             isLoading = false
+                                            
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                showAlert = true
+                                            }
                                         }
                                     }
                                 } else {
@@ -267,7 +290,9 @@ struct GenerateView: View {
                                         case .failure(let error):
                                             print("❌ Ошибка: \(error.localizedDescription)")
                                             isLoading = false
-                                            showAlert = true
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                showAlert = true
+                                            }
                                         }
                                     }
                                 }
@@ -363,6 +388,8 @@ struct GenerateView: View {
                     showAlert = false
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        isLoading = true
+                        
                         if selectedImage == nil {
                             NetworkManager.shared.generateVideo(promptText: ("\(promptText). \(selectedStyle?.hiddenPrompt ?? "")")) { result in
                                 switch result {
@@ -372,6 +399,9 @@ struct GenerateView: View {
                                 case .failure(let error):
                                     print("❌ Ошибка: \(error.localizedDescription)")
                                     isLoading = false
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        showAlert = true
+                                    }
                                 }
                             }
                         } else {
@@ -383,7 +413,9 @@ struct GenerateView: View {
                                 case .failure(let error):
                                     print("❌ Ошибка: \(error.localizedDescription)")
                                     isLoading = false
-                                    showAlert = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        showAlert = true
+                                    }
                                 }
                             }
                         }
@@ -397,6 +429,10 @@ struct GenerateView: View {
     private var promtButtonEnabled: Bool {
         !promptText.isEmpty
     }
+    
+    private func hideKeyboard() {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
     
     func checkGenerationStatusPeriodically(generationId: String) {
         var retryCount = 0

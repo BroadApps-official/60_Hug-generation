@@ -7,9 +7,16 @@ struct SettingsView: View {
     
     @Environment(\.presentationMode) var presentationMode
     @State private var isNotificationEnabled: Bool = false
-    @State private var isSwitchDisabled: Bool = false
     @State private var isPresented = false
     @State private var scrollOffset: CGFloat = 0
+    @State private var cacheSize = VideoCacheManager.shared.formattedCacheSize()
+    
+    @State private var showAlert = false
+    @State private var alertType: AlertType?
+    
+    enum AlertType {
+        case clearCache
+    }
     
     var body: some View {
         
@@ -57,7 +64,10 @@ struct SettingsView: View {
                                 }
                                 .listRowBackground(Color.backgroundTertiary)
                                 
-                                SettingsRowView(iconName: "trash", title: "Clear cache", value: "5 MB", action: {})
+                                SettingsRowView(iconName: "trash", title: "Clear cache", value: cacheSize, action: {
+                                    alertType = .clearCache
+                                    showAlert = true
+                                })
                                 
                                 SettingsRowView(iconName: "arrow.clockwise.icloud", title: "Restore purchases", value: "", action: {restorePurchases()})
                                 
@@ -135,7 +145,10 @@ struct SettingsView: View {
                                 }
                                 .listRowBackground(Color.backgroundTertiary)
                                 
-                                SettingsRowView(iconName: "trash", title: "Clear cache", value: "5 MB", action: {})
+                                SettingsRowView(iconName: "trash", title: "Clear cache", value: cacheSize, action: {
+                                    alertType = .clearCache
+                                    showAlert = true
+                                })
                                 
                                 SettingsRowView(iconName: "arrow.clockwise.icloud", title: "Restore purchases", value: "", action: {restorePurchases()})                            }
                             
@@ -212,6 +225,24 @@ struct SettingsView: View {
                         }
 
                 )
+                .alert(isPresented: $showAlert) {
+                    switch alertType {
+                    case .clearCache:
+                        return Alert(
+                            title: Text("Clear cache?"),
+                            message: Text("The cached files of your videos will be deleted from your phone's memory. But your download history will be retained."),
+                            primaryButton: .destructive(Text("Clear"), action: {
+                                VideoCacheManager.shared.clearCache()
+                            }),
+                            secondaryButton: .cancel()
+                        )
+                    case .none:
+                        return Alert(title: Text("Error"))
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .cacheDidClear)) { _ in
+                            cacheSize = VideoCacheManager.shared.formattedCacheSize()
+                        }
             }
         }
     }

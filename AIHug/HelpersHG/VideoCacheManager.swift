@@ -48,4 +48,30 @@ class VideoCacheManager {
             }
         }.resume()
     }
+    
+    /// Возвращает текущий размер кэша в байтах
+    func cacheSize() -> Int {
+        return cache.currentDiskUsage
+    }
+
+    /// Возвращает размер кэша как строку, например: "4.3 MB"
+    func formattedCacheSize() -> String {
+        let size = Double(cache.currentDiskUsage)
+        if size < 1_000 {
+            return String(format: "%.0f B", size)
+        } else if size < 1_000_000 {
+            return String(format: "%.1f KB", size / 1_000)
+        } else {
+            return String(format: "%.1f MB", size / 1_000_000)
+        }
+    }
+    
+    func clearCache() {
+        cache.removeAllCachedResponses()
+        NotificationCenter.default.post(name: .cacheDidClear, object: nil)
+    }
+}
+
+extension Notification.Name {
+    static let cacheDidClear = Notification.Name("cacheDidClear")
 }

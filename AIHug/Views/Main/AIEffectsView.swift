@@ -27,7 +27,7 @@ struct AIEffectsView: View {
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack {
-                        
+                        /*
                         HStack {
                             Button {
                                 selectedSegment = 0
@@ -63,7 +63,7 @@ struct AIEffectsView: View {
                         .cornerRadius(9)
                         .padding(.horizontal)
                         .padding(.top, 10)
-                        
+                        */
                         
                         ScrollView(.vertical, showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 20) {
@@ -100,19 +100,16 @@ struct AIEffectsView: View {
                                         .padding(.horizontal)
                                         .padding(.top, 10)
                                         
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            LazyHStack(spacing: 10) {
-                                                ForEach(viewModel.groupedTemplates[category] ?? []) { template in
-                                                    NavigationLink(destination: AddPhotoView(template: template)) {
-                                                            TemplateCardd(
-                                                                template: template
-                                                            )
-                                                        }
+                                        HStack(spacing: 10) {
+                                            ForEach(viewModel.groupedTemplates[category]?.prefix(2) ?? []) { template in
+                                                NavigationLink(destination: AddPhotoView(template: template)) {
+                                                    TemplateCardd(template: template)
                                                 }
                                             }
-                                            .padding(.horizontal, 16)
                                         }
+                                        .padding(.horizontal, 16)
                                         .frame(height: 250)
+
                                     }
                                 }
                             }
@@ -231,19 +228,18 @@ struct AIEffectsView: View {
     
 }
 
-import SwiftUI
-import AVKit
-
 struct TemplateCardd: View {
     let template: Template
     @State private var player: AVPlayer?
     @State private var isLoading = true
+    @GestureState private var isPressing = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
             if isLoading {
                 Color.gray.opacity(0.3)
-                    .frame(width: 170, height: 250)
+                    .frame(height: 250)
+                    .frame(maxWidth: .infinity)
                     .cornerRadius(12)
                     .overlay(
                         ProgressView()
@@ -251,16 +247,17 @@ struct TemplateCardd: View {
                     )
             } else {
                 VideoPlayerVieww(player: $player)
-                    .frame(width: 170, height: 250)
+                    .frame(height: 250)
+                    .frame(maxWidth: .infinity)
                     .cornerRadius(12)
             }
             
             LinearGradient(
-                gradient: Gradient(colors:
-                                    [Color(red: 25/255, green: 25/255, blue: 25/255),
-                                     Color(red: 21/255, green: 21/255, blue: 21/255, opacity: 0.5),
-                                     Color(red: 32/255, green: 32/255, blue: 32/255, opacity: 0)]
-                                  ),
+                gradient: Gradient(colors: [
+                    Color(red: 25/255, green: 25/255, blue: 25/255),
+                    Color(red: 21/255, green: 21/255, blue: 21/255, opacity: 0.5),
+                    Color(red: 32/255, green: 32/255, blue: 32/255, opacity: 0)
+                ]),
                 startPoint: .bottom,
                 endPoint: .top
             )
@@ -272,14 +269,29 @@ struct TemplateCardd: View {
                 .foregroundColor(.labelPrimary)
                 .padding(.bottom, 10)
                 .multilineTextAlignment(.center)
-            
         }
-        .frame(width: 170, height: 250)
+        .frame(height: 250)
+        .frame(maxWidth: .infinity)
         .onAppear {
             setupPlayer()
         }
+        .gesture(
+            LongPressGesture(minimumDuration: 0.2)
+                .updating($isPressing) { currentState, gestureState, _ in
+                    gestureState = currentState
+                }
+                .onEnded { _ in
+                    player?.play()
+                }
+        )
+        .onChange(of: isPressing) { pressing in
+            if !pressing {
+                // Остановить видео и вернуть к началу
+                player?.pause()
+                player?.seek(to: .zero)
+            }
+        }
     }
-    
     
     private func setupPlayer() {
         guard let url = URL(string: template.preview) else { return }
@@ -290,53 +302,14 @@ struct TemplateCardd: View {
             DispatchQueue.main.async {
                 let newPlayer = AVPlayer(url: cachedURL)
                 newPlayer.isMuted = true
-                newPlayer.actionAtItemEnd = .none
-
-                NotificationCenter.default.addObserver(
-                    forName: .AVPlayerItemDidPlayToEndTime,
-                    object: newPlayer.currentItem,
-                    queue: .main
-                ) { _ in
-                    newPlayer.seek(to: .zero)
-                    newPlayer.play()
-                }
-
+                newPlayer.actionAtItemEnd = .pause // Остановится в конце
                 player = newPlayer
                 isLoading = false
-                player?.play()
             }
         }
     }
-
-    //private func setupPlayer() {
-    //    guard let url = URL(string: template.preview) else {
-    //        print("Invalid URL: \(template.preview)")
-    //        return
-    //    }
-    //
-    //    print("Loading video from: \(url)")
-    //
-    //    let newPlayer = AVPlayer(url: url)
-    //    newPlayer.isMuted = true
-    //    newPlayer.actionAtItemEnd = .none
-    //
-    //    NotificationCenter.default.addObserver(
-    //        forName: .AVPlayerItemDidPlayToEndTime,
-    //        object: newPlayer.currentItem,
-    //        queue: .main
-    //    ) { _ in
-    //        newPlayer.seek(to: .zero)
-    //        newPlayer.play()
-    //    }
-    //
-    //    player = newPlayer
-    //
-    //    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-    //        isLoading = false
-    //        player?.play()
-    //    }
-    //}
 }
+
 
 struct VideoPlayerVieww: UIViewControllerRepresentable {
     @Binding var player: AVPlayer?

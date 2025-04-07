@@ -2,116 +2,143 @@ import AVKit
 import SwiftUI
 
 struct AddPhotoView: View {
+    
+    @Environment(\.presentationMode) var presentationMode
+    
     let template: Template
     @State private var selectedImage: UIImage?
     @State private var isSheetPresented = false
     @State private var isLoading = false
     
     var body: some View {
-        VStack {
-            
-            MiniTemplateCard(template: template)
-
-            HStack {
-                Text("Upload photo")
-                    .font(.title3Emphasized)
-                    .foregroundColor(.labelPrimary)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack {
                 
-                Spacer()
-            }
-            .padding(.horizontal)
-            
-            Button {
-                isSheetPresented.toggle()
-            } label: {
-                Spacer()
-                VStack(spacing: 0) {
+                MiniTemplateCard(template: template)
+                    .padding(.vertical, 20)
+                
+                HStack {
+                    Text("Upload photo")
+                        .font(.title3Emphasized)
+                        .foregroundColor(.labelPrimary)
                     
-                    if let image = selectedImage {
-                        ZStack {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 352, height: 352)
-                                .padding(0)
-                                .cornerRadius(12)
-                                .clipped()
-                            
-                            VStack {
-                                Spacer()
-                                HStack {
+                    Spacer()
+                }
+                .padding(.horizontal)
+                
+                Button {
+                    isSheetPresented.toggle()
+                } label: {
+                    Spacer()
+                    VStack(spacing: 0) {
+                        
+                        if let image = selectedImage {
+                            ZStack {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 352, height: 352)
+                                    .padding(0)
+                                    .cornerRadius(12)
+                                    .clipped()
+                                
+                                VStack {
                                     Spacer()
-                                    HStack{
-                                        Image(systemName: "arrow.triangle.2.circlepath")
-                                            .foregroundColor(.labelPrimary)
-                                            .font(.caption1Regular)
-                                        Text("Change")
-                                            .foregroundColor(.labelPrimary)
-                                            .font(.footnoteRegular)
+                                    HStack {
+                                        Spacer()
+                                        HStack{
+                                            Image(systemName: "arrow.triangle.2.circlepath")
+                                                .foregroundColor(.labelPrimary)
+                                                .font(.caption1Regular)
+                                            Text("Change")
+                                                .foregroundColor(.labelPrimary)
+                                                .font(.footnoteRegular)
+                                        }
+                                        .padding(.vertical, 12)
+                                        .padding(.horizontal, 8)
+                                        .background(Color.backgroundDim)
+                                        .cornerRadius(8)
+                                        .padding()
+                                        
                                     }
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 8)
-                                    .background(Color.backgroundDim)
-                                    .cornerRadius(8)
-                                    .padding()
-                                    
                                 }
                             }
+                        } else {
+                            Image(systemName: "plus")
+                                .font(.largeTitleRegular)
+                                .foregroundColor(.labelPrimaryInvariably)
+                                .padding(.bottom, 10)
+                            
+                            Text("Add photo")
+                                .font(.calloutRegular)
+                                .foregroundColor(.labelSecondary)
                         }
-                    } else {
-                        Image(systemName: "plus")
-                            .font(.largeTitleRegular)
-                            .foregroundColor(.labelPrimaryInvariably)
-                            .padding(.bottom, 10)
-                        
-                        Text("Add photo")
-                            .font(.calloutRegular)
-                            .foregroundColor(.labelSecondary)
                     }
+                    Spacer()
+                    
                 }
+                .frame(height: 352)
+                .frame(maxWidth: .infinity)
+                .background(Color.backgroundTertiary)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(
+                            style: StrokeStyle(lineWidth: 2, dash: [10])
+                        )
+                        .foregroundColor(selectedImage == nil ? .separatorPrimary : .clear)
+                )
+                .padding(.horizontal)
+                
                 Spacer()
                 
+                Button {
+                    isLoading = true
+                    
+                } label: {
+                    HStack {
+                        
+                        Text("Create a masterpiece")
+                            .font(.bodyEmphasized)
+                            .foregroundColor(.labelPrimary)
+                    }
+                    .frame(height: 48)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.accentPrimary)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    .padding(.top)
+                }
+                .padding(.bottom, 200)
             }
-            .frame(width: 352, height: 352)
-            .background(Color.backgroundTertiary)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(
-                        style: StrokeStyle(lineWidth: 2, dash: [10])
-                    )
-                    .foregroundColor(selectedImage == nil ? .separatorPrimary : .clear)
-            )
-            .padding(.horizontal)
+            .navigationTitle(template.effect)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
+            .navigationBarItems(
+                leading:
+                    Button(action: {
+                        presentationMode.wrappedValue.dismiss()
+                    }, label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.accentPrimary)
+                        }
+                    }))
+            .sheet(isPresented: $isSheetPresented) {
+                PhotoPicker(selectedImage: $selectedImage)
+            }
+            .onChange(of: selectedImage) { newValue in
+                if newValue != nil {
+                    isSheetPresented = false
+                }
+            }
+            .fullScreenCover(isPresented: $isLoading) {
+                GenerationView()
+            }
             
             Spacer()
-            
-            Button {
-                isLoading = true
-                
-            } label: {
-                HStack {
-                    
-                    Text("Create a masterpiece")
-                        .font(.bodyEmphasized)
-                        .foregroundColor(.labelPrimary)
-                }
-                .frame(height: 48)
-                .frame(maxWidth: .infinity)
-                .background(Color.accentPrimary)
-                .cornerRadius(12)
-                .padding(.horizontal)
-                .padding(.top)
-            }
-            .padding(.bottom, 200)
-        }
-        .navigationTitle(template.effect)
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isSheetPresented) {
-            PhotoPicker(selectedImage: $selectedImage)
-        }
-        .fullScreenCover(isPresented: $isLoading) {
-            GenerationView()
+                .frame(height: 150)
         }
     }
     

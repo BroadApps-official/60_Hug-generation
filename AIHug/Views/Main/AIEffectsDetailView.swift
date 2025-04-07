@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct AIEffectsDetailView: View {
+    
+    @Environment(\.presentationMode) var presentationMode
+    
     let category: String
     let templates: [Template]
     
@@ -10,8 +13,8 @@ struct AIEffectsDetailView: View {
     ]
     
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 10) {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVGrid(columns: columns, spacing: 20) {
                 ForEach(templates) { template in
                     
                     NavigationLink(destination: AddPhotoView(template: template)) {
@@ -22,8 +25,23 @@ struct AIEffectsDetailView: View {
                 }
             }
             .padding()
+            
+            Spacer()
+                .frame(height: 150)
         }
         .navigationTitle(category)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .navigationBarItems(
+            leading:
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }, label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.accentPrimary)
+                    }
+                }))
     }
 }

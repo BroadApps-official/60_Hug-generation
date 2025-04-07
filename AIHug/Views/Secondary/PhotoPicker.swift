@@ -171,7 +171,7 @@ struct PhotoPicker: View {
                 }
                 
                 Button {
-                    selectedSource = .photoLibrary // Устанавливаем галерею как источник
+                    selectedSource = .photoLibrary
                     isImagePickerPresented.toggle()
                 } label: {
                     Text("From the gallery")
@@ -195,15 +195,16 @@ struct PhotoPicker: View {
                 .multilineTextAlignment(.center)
                 .padding(.top)
             
-                .fullScreenCover(isPresented: $isImagePickerPresented) {
-                    ImagePickerView(sourceType: selectedSource ?? .photoLibrary, selectedImage: $selectedImage)
-                        .edgesIgnoringSafeArea(.all)
-                }
+                
             
             Spacer()
         }
         .background(BlurView(style: .systemUltraThinMaterial).opacity(0.5))
         .edgesIgnoringSafeArea(.all)
+        .fullScreenCover(isPresented: $isImagePickerPresented) {
+            ImagePickerView(sourceType: selectedSource ?? .photoLibrary, selectedImage: $selectedImage)
+                .edgesIgnoringSafeArea(.all)
+        }
         
     }
 }
