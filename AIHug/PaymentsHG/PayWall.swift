@@ -5,6 +5,8 @@ struct PayWall: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     @State private var selectedPlan: SubscriptionPlan?
+    @State private var subscriptionPlans: [SubscriptionPlan] = []
+
     @State private var showCloseButton = false
     @State private var isPurchasing = false
     
@@ -90,12 +92,13 @@ struct PayWall: View {
                             Spacer()
                                 .frame(height: 20)
                             
-                            let subscriptionPlans = SubscriptionPlan.from(productIds: subscriptionManager.productsApphud.map(\.productId))
+                            //let subscriptionPlans = SubscriptionPlan.from(productIds: subscriptionManager.productsApphud.map(\.productId))
                             
                             VStack(spacing: 12) {
                                 ForEach(subscriptionPlans, id: \.productId) { plan in
                                     SubscriptionButton(plan: plan, selectedPlan: $selectedPlan)
                                 }
+
                             }
                             
                             Spacer()
@@ -178,7 +181,30 @@ struct PayWall: View {
                     showCloseButton = true
                 }
                 
+                let plans = SubscriptionPlan.from(productIds: subscriptionManager.productsApphud.map(\.productId))
+                    subscriptionPlans = plans
+                    
+                    // Устанавливаем выбранный по умолчанию (например, годовой)
+                    if let yearly = plans.first(where: { $0.title == "Year" }) {
+                        selectedPlan = yearly
+                    } else {
+                        selectedPlan = plans.first
+                    }
+                
             }
+            .onChange(of: subscriptionManager.productsApphud) { newProducts in
+                let plans = SubscriptionPlan.from(productIds: newProducts.map(\.productId))
+                subscriptionPlans = plans
+                
+                if selectedPlan == nil {
+                    if let yearly = plans.first(where: { $0.title == "Year" }) {
+                        selectedPlan = yearly
+                    } else {
+                        selectedPlan = plans.first
+                    }
+                }
+            }
+
         }
     }
     

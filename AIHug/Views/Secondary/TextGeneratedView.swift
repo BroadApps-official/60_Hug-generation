@@ -1,6 +1,7 @@
 import SwiftUI
 import AVKit
 import Photos
+import UniformTypeIdentifiers
 
 struct TextGeneratedView: View {
     
@@ -14,7 +15,9 @@ struct TextGeneratedView: View {
     @State private var isLoading = true
     @State private var showAlert = false
     @State private var alertType: AlertType?
-    
+    @State private var exportFileURL: URL?
+    @State private var showDocumentExporter = false
+
     enum AlertType {
         case successDownloading
         case failedDownloading
@@ -144,6 +147,11 @@ struct TextGeneratedView: View {
                 }
                 
             }
+            .sheet(isPresented: $showDocumentExporter) {
+                if let exportFileURL = exportFileURL {
+                    DocumentExporter(fileURL: exportFileURL)
+                }
+            }
             .alert(isPresented: $showAlert) {
                 switch alertType {
                 case .successDownloading:
@@ -201,7 +209,7 @@ struct TextGeneratedView: View {
                                 Label("Share", systemImage: "arrow.down.to.line")
                             }
                             Button(action: {
-                                
+                                saveVideoToFiles(urlString: item?.url)
                             }) {
                                 Label("Save to files", systemImage: "folder.badge.plus")
                             }
@@ -278,8 +286,83 @@ struct TextGeneratedView: View {
         
         isPlaying.toggle()
     }
+
+    func saveVideoToFiles(urlString: String?) {
+        guard let urlString = urlString, let videoURL = URL(string: urlString) else {
+            print("❌ Invalid video URL")
+            alertType = .failedDownloading
+            showAlert = true
+            return
+        }
+
+        if videoURL.isFileURL {
+            copyAndExportToDocuments(from: videoURL)
+        } else {
+            let task = URLSession.shared.downloadTask(with: videoURL) { tempURL, _, error in
+                guard let tempURL = tempURL, error == nil else {
+                    print("❌ Download failed: \(error?.localizedDescription ?? "")")
+                    alertType = .failedDownloading
+                    showAlert = true
+                    return
+                }
+
+                // Создаем новое имя файла с расширением .mp4
+                let fileName = UUID().uuidString + ".mp4"
+                let fileManager = FileManager.default
+                let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                let destinationURL = docsURL.appendingPathComponent(fileName)
+
+                do {
+                    if fileManager.fileExists(atPath: destinationURL.path) {
+                        try fileManager.removeItem(at: destinationURL)
+                    }
+                    try fileManager.copyItem(at: tempURL, to: destinationURL)
+
+                    DispatchQueue.main.async {
+                        self.exportFileURL = destinationURL
+                        // Теперь, когда файл скопирован, показываем sheet
+                        self.showDocumentExporter = true
+                    }
+
+                } catch {
+                    print("❌ File copy failed: \(error)")
+                    DispatchQueue.main.async {
+                        self.alertType = .failedDownloading
+                        self.showAlert = true
+                    }
+                }
+            }
+            task.resume()
+        }
+    }
+
+
+    private func copyAndExportToDocuments(from sourceURL: URL) {
+        let fileManager = FileManager.default
+        let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileName = sourceURL.lastPathComponent
+        let destinationURL = docsURL.appendingPathComponent(fileName)
+
+        do {
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try fileManager.removeItem(at: destinationURL)
+            }
+            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+            exportFileURL = destinationURL
+            showDocumentExporter = true
+        } catch {
+            print("❌ File copy failed: \(error)")
+            alertType = .failedDownloading
+            showAlert = true
+        }
+    }
+
     
-    
+    private func presentDocumentPickerForExporting(localURL: URL) {
+        exportFileURL = localURL
+        showDocumentExporter = true
+    }
+
     func saveVideoToGallery(urlString: String?) {
         guard let urlString = urlString, let url = URL(string: urlString) else {
             print("❌ Invalid video URL")
@@ -382,4 +465,16 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         guard let controller = uiViewController as? AVPlayerViewController else { return }
         controller.player = player
     }
+}
+
+struct DocumentExporter: UIViewControllerRepresentable {
+    let fileURL: URL
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forExporting: [fileURL])
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
 }
