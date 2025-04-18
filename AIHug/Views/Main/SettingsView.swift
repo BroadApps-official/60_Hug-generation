@@ -11,6 +11,8 @@ struct SettingsView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var cacheSize = VideoCacheManager.shared.formattedCacheSize()
     
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    
     @State private var showAlert = false
     @State private var alertType: AlertType?
     
@@ -46,9 +48,9 @@ struct SettingsView: View {
                                 .foregroundColor(.labelSecondary)
                             ) {
                                 
-                                
-                                SettingsRowView(iconName: "sparkles", title: "Upgrade plan", value: "", action: {isPresented = true})
-                                
+                                if !subscriptionManager.isSubscribed {
+                                    SettingsRowView(iconName: "sparkles", title: "Upgrade plan", value: "", action: {isPresented = true})
+                                }
                                 HStack {
                                     Image(systemName: "bell.badge")
                                         .frame(width: 36, alignment: .center)
@@ -68,9 +70,9 @@ struct SettingsView: View {
                                     alertType = .clearCache
                                     showAlert = true
                                 })
-                                
-                                SettingsRowView(iconName: "arrow.clockwise.icloud", title: "Restore purchases", value: "", action: {restorePurchases()})
-                                
+                                if !subscriptionManager.isSubscribed{
+                                    SettingsRowView(iconName: "arrow.clockwise.icloud", title: "Restore purchases", value: "", action: {restorePurchases()})
+                                }
                             }
                             
                             Section(header:
@@ -88,7 +90,7 @@ struct SettingsView: View {
                             
                             HStack() {
                                 Spacer()
-                                Text("App Version: 1.2.2")
+                                Text("App Version: 1.2.3")
                                     .font(.footnoteRegular)
                                     .foregroundColor(Color.labelTertiary)
                                 Spacer()
@@ -98,14 +100,6 @@ struct SettingsView: View {
                             
                             
                         }
-                        .background(GeometryReader { geometry in
-                            Color.clear.onAppear {
-                                self.scrollOffset = geometry.frame(in: .global).minY
-                            }
-                            .onChange(of: geometry.frame(in: .global).minY) { value in
-                                self.scrollOffset = value
-                            }
-                        })
                         .listStyle(InsetGroupedListStyle())
                         .background(Color.backgroundPrimary)
                         .scrollContentBackground(.hidden)
@@ -167,7 +161,7 @@ struct SettingsView: View {
                             
                             HStack() {
                                 Spacer()
-                                Text("App Version: 1.2.2")
+                                Text("App Version: 1.2.3")
                                     .font(.footnoteRegular)
                                     .foregroundColor(Color.labelTertiary)
                                 Spacer()
@@ -176,14 +170,6 @@ struct SettingsView: View {
                             .listRowBackground(Color.backgroundPrimary)
                             
                         }
-                        .background(GeometryReader { geometry in
-                            Color.clear.onAppear {
-                                self.scrollOffset = geometry.frame(in: .global).minY
-                            }
-                            .onChange(of: geometry.frame(in: .global).minY) { value in
-                                self.scrollOffset = value
-                            }
-                        })
                         .listStyle(InsetGroupedListStyle())
                     }
                     
@@ -195,35 +181,38 @@ struct SettingsView: View {
                 .navigationTitle(
                     Text("Settings")
                 )
-                .navigationBarTitleDisplayMode(scrollOffset < -100 ? .inline : .large)
                 .navigationBarItems(
                     trailing:
-                        Button(action: {
-                            isPresented = true
-                        }, label: {
-                            HStack(spacing: 0) {
-                                Text("PRO")
-                                    .font(.subheadlineEmphasized)
-                                    .foregroundColor(.labelPrimary)
-                                    .padding(.leading, 10)
-                                Image(systemName: "sparkles")
-                                    .frame(width: 32, height: 32)
-                                    .foregroundColor(.labelPrimary)
-                                    .font(.system(size: 14))
+                        HStack {
+                            if !subscriptionManager.isSubscribed {
+                                Button(action: {
+                                    isPresented = true
+                                }, label: {
+                                    HStack(spacing: 0) {
+                                        Text("PRO")
+                                            .font(.subheadlineEmphasized)
+                                            .foregroundColor(.labelPrimary)
+                                            .padding(.leading, 10)
+                                        Image(systemName: "sparkles")
+                                            .frame(width: 32, height: 32)
+                                            .foregroundColor(.labelPrimary)
+                                            .font(.system(size: 14))
+                                    }
+                                    .frame(height: 32)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ))
+                                    .cornerRadius(8)
+                                })
+                                .sheet(isPresented: $isPresented) {
+                                    PayWall()
+                                }
                             }
-                            .frame(height: 32)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ))
-                            .cornerRadius(8)
-                        })
-                        .sheet(isPresented: $isPresented) {
-                            PayWall()
                         }
-
+                    
                 )
                 .alert(isPresented: $showAlert) {
                     switch alertType {
@@ -241,8 +230,8 @@ struct SettingsView: View {
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .cacheDidClear)) { _ in
-                            cacheSize = VideoCacheManager.shared.formattedCacheSize()
-                        }
+                    cacheSize = VideoCacheManager.shared.formattedCacheSize()
+                }
             }
         }
     }

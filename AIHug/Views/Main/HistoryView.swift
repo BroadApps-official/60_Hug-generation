@@ -10,6 +10,8 @@ struct HistoryView: View {
     @State private var selectedSegment = 1
     @State private var navigateToTextGeneratedView = false
     
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    
     @State private var selectedItem: TextGenerations?
     
     let columns = [
@@ -139,30 +141,34 @@ struct HistoryView: View {
                     .navigationBarTitleDisplayMode(.large)
                     .navigationBarItems(
                         trailing:
-                            Button(action: {
-                                isPresented = true
-                            }, label: {
-                                HStack(spacing: 0) {
-                                    Text("PRO")
-                                        .font(.subheadlineEmphasized)
-                                        .foregroundColor(.labelPrimary)
-                                        .padding(.leading, 10)
-                                    Image(systemName: "sparkles")
-                                        .frame(width: 32, height: 32)
-                                        .foregroundColor(.labelPrimary)
-                                        .font(.system(size: 14))
+                            HStack {
+                                if !subscriptionManager.isSubscribed {
+                                    Button(action: {
+                                        isPresented = true
+                                    }, label: {
+                                        HStack(spacing: 0) {
+                                            Text("PRO")
+                                                .font(.subheadlineEmphasized)
+                                                .foregroundColor(.labelPrimary)
+                                                .padding(.leading, 10)
+                                            Image(systemName: "sparkles")
+                                                .frame(width: 32, height: 32)
+                                                .foregroundColor(.labelPrimary)
+                                                .font(.system(size: 14))
+                                        }
+                                        .frame(height: 32)
+                                        .background(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            ))
+                                        .cornerRadius(8)
+                                    })
+                                    .sheet(isPresented: $isPresented) {
+                                        PayWall()
+                                    }
                                 }
-                                .frame(height: 32)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    ))
-                                .cornerRadius(8)
-                            })
-                            .sheet(isPresented: $isPresented) {
-                                PayWall()
                             }
                         
                     )
@@ -231,15 +237,15 @@ struct HistoryItemCard: View {
         .onAppear {
             setupPlayer()
         }
-        .gesture(
-            LongPressGesture(minimumDuration: 0.2)
-                .updating($isPressing) { currentState, gestureState, _ in
-                    gestureState = currentState
-                }
-                .onEnded { _ in
-                    player?.play()
-                }
-        )
+        //.gesture(
+        //    LongPressGesture(minimumDuration: 0.2)
+        //        .updating($isPressing) { currentState, gestureState, _ in
+        //            gestureState = currentState
+        //        }
+        //        .onEnded { _ in
+        //            player?.play()
+        //        }
+        //)
         .onChange(of: isPressing) { pressing in
             if !pressing {
                 player?.pause()

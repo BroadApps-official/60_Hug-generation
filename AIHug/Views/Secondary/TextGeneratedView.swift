@@ -1,7 +1,9 @@
 import SwiftUI
+import UIKit
 import AVKit
 import Photos
 import UniformTypeIdentifiers
+import StoreKit
 
 struct TextGeneratedView: View {
     
@@ -17,7 +19,13 @@ struct TextGeneratedView: View {
     @State private var alertType: AlertType?
     @State private var exportFileURL: URL?
     @State private var showDocumentExporter = false
-
+    @State private var isControlsVisible = true
+    @State private var hideControlsWorkItem: DispatchWorkItem?
+    @State private var isShareSheetPresented = false
+    @State private var shareURL: URL?
+    @State private var isPreparingExport = false
+    
+    
     enum AlertType {
         case successDownloading
         case failedDownloading
@@ -31,6 +39,10 @@ struct TextGeneratedView: View {
                     .edgesIgnoringSafeArea(.all)
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
+                        if item?.styleName == nil {
+                            Spacer()
+                                .frame(height: 100)
+                        }
                         
                         RoundedRectangle(cornerRadius: 12)
                             .foregroundColor(.backgroundSecondary)
@@ -40,8 +52,10 @@ struct TextGeneratedView: View {
                                 ZStack {
                                     VideoPlayerView(player: $player)
                                         .cornerRadius(12)
-                                    
-                                    
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            showControlsTemporarily()
+                                        }
                                     
                                     if isLoading {
                                         ProgressView()
@@ -50,17 +64,19 @@ struct TextGeneratedView: View {
                                             .frame(width: 76, height: 76)
                                             .background(BlurView(style: .systemUltraThinMaterial))
                                             .cornerRadius(38)
-                                    } else {
-                                        Button(action: togglePlayPause) {
-                                            Image(systemName: isPlaying ? "pause" : "play.fill")
-                                                .font(.largeTitleRegular)
-                                                .frame(width: 76, height: 76)
-                                                .background(BlurView(style: .systemUltraThinMaterial))
-                                                .cornerRadius(38)
-                                                .foregroundColor(.white)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
                                     }
+                                    
+                                    Button(action: togglePlayPause) {
+                                        Image(systemName: isPlaying ? "pause" : "play.fill")
+                                            .font(.largeTitleRegular)
+                                            .frame(width: 76, height: 76)
+                                            .background(BlurView(style: .systemUltraThinMaterial))
+                                            .cornerRadius(38)
+                                            .foregroundColor(.white)
+                                    }
+                                    .opacity(isLoading ? 0 : (isControlsVisible ? 1 : 0))
+                                    .animation(.easeInOut(duration: 0.25), value: isControlsVisible)
+                                    .allowsHitTesting(isControlsVisible && !isLoading)
                                 }
                             )
                             .padding()
@@ -68,62 +84,63 @@ struct TextGeneratedView: View {
                                 setupPlayer()
                             }
                         
-                        HStack {
-                            Text("Prompt")
-                                .font(.title3Emphasized)
-                                .foregroundColor(.labelPrimary)
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                UIPasteboard.general.string = item?.prompt
-                            }) {
-                                Text("Copy")
-                                    .font(.footnoteRegular)
-                                    .foregroundColor(.labelSecondary)
+                        if item?.styleName != nil {
+                            HStack {
+                                Text("Prompt")
+                                    .font(.title3Emphasized)
+                                    .foregroundColor(.labelPrimary)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    UIPasteboard.general.string = item?.prompt
+                                }) {
+                                    Text("Copy")
+                                        .font(.footnoteRegular)
+                                        .foregroundColor(.labelSecondary)
+                                }
                             }
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 10)
-                        
-                        Text(item?.prompt ?? "")
-                            .foregroundColor(.labelPrimary)
-                            .font(.bodyRegular)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.backgroundTertiary)
-                            .cornerRadius(14)
                             .padding(.horizontal)
-                        
-                        HStack {
-                            Text("Style")
-                                .font(.title3Emphasized)
+                            .padding(.bottom, 10)
+                            
+                            Text(item?.prompt ?? "")
                                 .foregroundColor(.labelPrimary)
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.top)
-                        .padding(.bottom, 10)
-                        
-                        HStack(spacing: 16) {
-                            Image(item?.styleImageName ?? "")
-                                .resizable()
-                                .scaledToFill()
-                                .clipShape(Circle())
-                                .frame(width: 56, height: 56)
-                            
-                            Text(item?.styleName ?? "")
                                 .font(.bodyRegular)
-                                .foregroundColor(.labelPrimary)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.backgroundTertiary)
+                                .cornerRadius(14)
+                                .padding(.horizontal)
+                            
+                            HStack {
+                                Text("Style")
+                                    .font(.title3Emphasized)
+                                    .foregroundColor(.labelPrimary)
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.top)
+                            .padding(.bottom, 10)
+                            
+                            HStack(spacing: 16) {
+                                Image(item?.styleImageName ?? "")
+                                    .resizable()
+                                    .scaledToFill()
+                                    .clipShape(Circle())
+                                    .frame(width: 56, height: 56)
+                                
+                                Text(item?.styleName ?? "")
+                                    .font(.bodyRegular)
+                                    .foregroundColor(.labelPrimary)
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal)
                             
                             Spacer()
+                                .frame(height: 150)
                         }
-                        .padding(.horizontal)
-                        
-                        Spacer()
-                            .frame(height: 150)
-                        
                     }
                 }
                 
@@ -147,8 +164,25 @@ struct TextGeneratedView: View {
                 }
                 
             }
+            .sheet(isPresented: $isShareSheetPresented) {
+                if isPreparingExport {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("File preparation…")
+                    }
+                    .padding()
+                } else if let shareURL = shareURL {
+                    ShareSheet(activityItems: [shareURL])
+                }
+            }
             .sheet(isPresented: $showDocumentExporter) {
-                if let exportFileURL = exportFileURL {
+                if isPreparingExport {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("File preparation…")
+                    }
+                    .padding()
+                } else if let exportFileURL = exportFileURL {
                     DocumentExporter(fileURL: exportFileURL)
                 }
             }
@@ -199,12 +233,13 @@ struct TextGeneratedView: View {
                         }
                     }),
                 trailing:
-                    
                     Menu {
                         
                         Section {
                             Button(action: {
-                                
+                                if let urlString = item?.url {
+                                    prepareVideoForSharing(from: urlString)
+                                }
                             }) {
                                 Label("Share", systemImage: "arrow.down.to.line")
                             }
@@ -215,9 +250,7 @@ struct TextGeneratedView: View {
                             }
                         }
                         
-                        
                         Section {
-                            
                             if #available(iOS 15.0, *) {
                                 Button(role: .destructive) {
                                     alertType = .deleteEnsure
@@ -233,8 +266,6 @@ struct TextGeneratedView: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
-                            
-                            
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -242,6 +273,20 @@ struct TextGeneratedView: View {
                             .foregroundColor(.accentPrimary)
                     }
             )
+        }
+    }
+    
+    private func showRateAlert() {
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            SKStoreReviewController.requestReview(in: scene)
+        } else {
+            openAppStore()
+        }
+    }
+    
+    private func openAppStore() {
+        if let url = URL(string: "https://apps.apple.com/us/app/id\(6742832953)?action=write-review") {
+            UIApplication.shared.open(url)
         }
     }
     
@@ -272,6 +317,7 @@ struct TextGeneratedView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isLoading = false
             player?.play()
+            showControlsTemporarily()
         }
     }
     
@@ -286,7 +332,77 @@ struct TextGeneratedView: View {
         
         isPlaying.toggle()
     }
+    
+    private func showControlsTemporarily() {
+        isControlsVisible = true
+        
+        hideControlsWorkItem?.cancel()
+        let workItem = DispatchWorkItem {
+            isControlsVisible = false
+        }
+        
+        hideControlsWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: workItem)
+    }
+    
+    func prepareVideoForSharing(from urlString: String) {
+        guard let videoURL = URL(string: urlString) else {
+            print("❌ Invalid video URL")
+            alertType = .failedDownloading
+            showAlert = true
+            return
+        }
 
+        DispatchQueue.main.async {
+            self.isPreparingExport = true
+            self.isShareSheetPresented = true
+        }
+
+        if videoURL.isFileURL {
+            DispatchQueue.main.async {
+                self.shareURL = videoURL
+                self.isPreparingExport = false
+            }
+        } else {
+            let task = URLSession.shared.downloadTask(with: videoURL) { tempURL, _, error in
+                guard let tempURL = tempURL, error == nil else {
+                    DispatchQueue.main.async {
+                        self.alertType = .failedDownloading
+                        self.showAlert = true
+                        self.isShareSheetPresented = false
+                    }
+                    return
+                }
+
+                let fileName = UUID().uuidString + ".mp4"
+                let tempDir = FileManager.default.temporaryDirectory
+                let destinationURL = tempDir.appendingPathComponent(fileName)
+
+                do {
+                    if FileManager.default.fileExists(atPath: destinationURL.path) {
+                        try FileManager.default.removeItem(at: destinationURL)
+                    }
+                    try FileManager.default.copyItem(at: tempURL, to: destinationURL)
+
+                    DispatchQueue.main.async {
+                        self.shareURL = destinationURL
+                        self.isPreparingExport = false
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        print("❌ Copy failed: \(error)")
+                        self.alertType = .failedDownloading
+                        self.showAlert = true
+                        self.isShareSheetPresented = false
+                    }
+                }
+            }
+
+            task.resume()
+        }
+    }
+
+    
     func saveVideoToFiles(urlString: String?) {
         guard let urlString = urlString, let videoURL = URL(string: urlString) else {
             print("❌ Invalid video URL")
@@ -294,75 +410,83 @@ struct TextGeneratedView: View {
             showAlert = true
             return
         }
-
+        
         if videoURL.isFileURL {
             copyAndExportToDocuments(from: videoURL)
         } else {
+            DispatchQueue.main.async {
+                self.isPreparingExport = true
+                self.showDocumentExporter = true
+            }
+            
             let task = URLSession.shared.downloadTask(with: videoURL) { tempURL, _, error in
                 guard let tempURL = tempURL, error == nil else {
-                    print("❌ Download failed: \(error?.localizedDescription ?? "")")
-                    alertType = .failedDownloading
-                    showAlert = true
+                    DispatchQueue.main.async {
+                        self.alertType = .failedDownloading
+                        self.showAlert = true
+                        self.showDocumentExporter = false
+                    }
                     return
                 }
-
-                // Создаем новое имя файла с расширением .mp4
+                
                 let fileName = UUID().uuidString + ".mp4"
                 let fileManager = FileManager.default
                 let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 let destinationURL = docsURL.appendingPathComponent(fileName)
-
+                
                 do {
                     if fileManager.fileExists(atPath: destinationURL.path) {
                         try fileManager.removeItem(at: destinationURL)
                     }
                     try fileManager.copyItem(at: tempURL, to: destinationURL)
-
+                    
                     DispatchQueue.main.async {
                         self.exportFileURL = destinationURL
-                        // Теперь, когда файл скопирован, показываем sheet
-                        self.showDocumentExporter = true
+                        self.isPreparingExport = false
                     }
-
+                    
+                    
                 } catch {
-                    print("❌ File copy failed: \(error)")
                     DispatchQueue.main.async {
                         self.alertType = .failedDownloading
                         self.showAlert = true
+                        self.showDocumentExporter = false
                     }
                 }
             }
             task.resume()
         }
     }
-
-
+    
+    
     private func copyAndExportToDocuments(from sourceURL: URL) {
         let fileManager = FileManager.default
         let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let fileName = sourceURL.lastPathComponent
         let destinationURL = docsURL.appendingPathComponent(fileName)
-
+        
         do {
             if fileManager.fileExists(atPath: destinationURL.path) {
                 try fileManager.removeItem(at: destinationURL)
             }
             try fileManager.copyItem(at: sourceURL, to: destinationURL)
-            exportFileURL = destinationURL
-            showDocumentExporter = true
+            DispatchQueue.main.async {
+                self.exportFileURL = destinationURL
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.showDocumentExporter = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.showDocumentExporter = true
+                    }
+                }
+            }
+            
         } catch {
             print("❌ File copy failed: \(error)")
             alertType = .failedDownloading
             showAlert = true
         }
     }
-
     
-    private func presentDocumentPickerForExporting(localURL: URL) {
-        exportFileURL = localURL
-        showDocumentExporter = true
-    }
-
     func saveVideoToGallery(urlString: String?) {
         guard let urlString = urlString, let url = URL(string: urlString) else {
             print("❌ Invalid video URL")
@@ -386,6 +510,7 @@ struct TextGeneratedView: View {
                     print("✅ Video saved to gallery")
                     alertType = .successDownloading
                     showAlert = true
+                    showRateAlert()
                 } else {
                     print("❌ Save error: \(error?.localizedDescription ?? "Unknown error")")
                     alertType = .failedDownloading
@@ -445,7 +570,6 @@ struct TextGeneratedView: View {
             presentationMode.wrappedValue.dismiss()
         } catch {
             print("Error deleting item: \(error.localizedDescription)")
-            // Добавьте обработку ошибки при необходимости
         }
     }
 }
@@ -469,12 +593,27 @@ struct VideoPlayerView: UIViewControllerRepresentable {
 
 struct DocumentExporter: UIViewControllerRepresentable {
     let fileURL: URL
-
+    
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forExporting: [fileURL])
         picker.allowsMultipleSelection = false
         return picker
     }
-
+    
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
+        )
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

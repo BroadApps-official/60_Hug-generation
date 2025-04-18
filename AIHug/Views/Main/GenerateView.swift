@@ -13,6 +13,8 @@ struct GenerateView: View {
     @Environment(\.managedObjectContext) var moc
     @State private var generatedItem: TextGenerations?
     
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    
     @State private var isPresented = false
     @State private var isLoading: Bool = false
     @State private var scrollOffset: CGFloat = 0
@@ -264,38 +266,43 @@ struct GenerateView: View {
                             }
                             
                             Button {
-                                isLoading = true
-                                
-                                if selectedImage == nil {
-                                    NetworkManager.shared.generateVideo(promptText: ("\(promptText). \(selectedStyle?.hiddenPrompt ?? "")")) { result in
-                                        switch result {
-                                        case .success(let generationId):
-                                            print("✅ Generation ID: \(generationId)")
-                                            checkGenerationStatusPeriodically(generationId: ("\(generationId)"))
-                                        case .failure(let error):
-                                            print("❌ Ошибка: \(error.localizedDescription)")
-                                            isLoading = false
-                                            
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                                showAlert = true
+                                if !subscriptionManager.isSubscribed {
+                                    isPresented = true
+                                } else {
+                                    isLoading = true
+                                    
+                                    if selectedImage == nil {
+                                        NetworkManager.shared.generateVideo(promptText: ("\(promptText). \(selectedStyle?.hiddenPrompt ?? "")")) { result in
+                                            switch result {
+                                            case .success(let generationId):
+                                                print("✅ Generation ID: \(generationId)")
+                                                checkGenerationStatusPeriodically(generationId: ("\(generationId)"))
+                                            case .failure(let error):
+                                                print("❌ Ошибка: \(error.localizedDescription)")
+                                                isLoading = false
+                                                
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                    showAlert = true
+                                                }
                                             }
                                         }
-                                    }
-                                } else {
-                                    NetworkManager.shared.generateVideoWithPhotoRef(promptText: ("\(promptText). \(selectedStyle?.hiddenPrompt ?? "")"), image: selectedImage!) { result in
-                                        switch result {
-                                        case .success(let generationId):
-                                            print("✅ Generation ID: \(generationId)")
-                                            checkGenerationStatusPeriodically(generationId: ("\(generationId)"))
-                                        case .failure(let error):
-                                            print("❌ Ошибка: \(error.localizedDescription)")
-                                            isLoading = false
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                                showAlert = true
+                                    } else {
+                                        NetworkManager.shared.generateVideoWithPhotoRef(promptText: ("\(promptText). \(selectedStyle?.hiddenPrompt ?? "")"), image: selectedImage!) { result in
+                                            switch result {
+                                            case .success(let generationId):
+                                                print("✅ Generation ID: \(generationId)")
+                                                checkGenerationStatusPeriodically(generationId: ("\(generationId)"))
+                                            case .failure(let error):
+                                                print("❌ Ошибка: \(error.localizedDescription)")
+                                                isLoading = false
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                    showAlert = true
+                                                }
                                             }
                                         }
                                     }
                                 }
+                                
                                 
                             } label: {
                                 HStack {
@@ -337,31 +344,36 @@ struct GenerateView: View {
                     )
                     .navigationBarTitleDisplayMode(scrollOffset < -100 ? .inline : .large)
                     .navigationBarItems(
+                        
                         trailing:
-                            Button(action: {
-                                isPresented = true
-                            }, label: {
-                                HStack(spacing: 0) {
-                                    Text("PRO")
-                                        .font(.subheadlineEmphasized)
-                                        .foregroundColor(.labelPrimary)
-                                        .padding(.leading, 10)
-                                    Image(systemName: "sparkles")
-                                        .frame(width: 32, height: 32)
-                                        .foregroundColor(.labelPrimary)
-                                        .font(.system(size: 14))
+                            HStack {
+                                if !subscriptionManager.isSubscribed {
+                                    Button(action: {
+                                        isPresented = true
+                                    }, label: {
+                                        HStack(spacing: 0) {
+                                            Text("PRO")
+                                                .font(.subheadlineEmphasized)
+                                                .foregroundColor(.labelPrimary)
+                                                .padding(.leading, 10)
+                                            Image(systemName: "sparkles")
+                                                .frame(width: 32, height: 32)
+                                                .foregroundColor(.labelPrimary)
+                                                .font(.system(size: 14))
+                                        }
+                                        .frame(height: 32)
+                                        .background(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            ))
+                                        .cornerRadius(8)
+                                    })
+                                    .sheet(isPresented: $isPresented) {
+                                        PayWall()
+                                    }
                                 }
-                                .frame(height: 32)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    ))
-                                .cornerRadius(8)
-                            })
-                            .sheet(isPresented: $isPresented) {
-                                PayWall()
                             }
                         
                     )

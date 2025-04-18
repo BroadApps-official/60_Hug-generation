@@ -1,27 +1,30 @@
 import AVKit
 import SwiftUI
 
-struct AddPhotoView: View {
+struct AddPhotoView<T: PreviewPlayable>: View {
     
     @FetchRequest(sortDescriptors: []) var textGeneretionItems: FetchedResults<TextGenerations>
     @Environment(\.managedObjectContext) var moc
     @State private var generatedItem: TextGenerations?
     
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
     
-    let template: Template
+    let item: T
     @State private var selectedImage: UIImage?
     @State private var isSheetPresented = false
     @State private var isLoading = false
     @State private var navigateToTextGeneratedView = false
     @State private var videoURL: String?
     @State private var showAlert = false
+    @State private var isPresented = false
+
     
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack {
                 
-                MiniTemplateCard(template: template)
+                MiniTemplateCard(item: item)
                     .padding(.vertical, 20)
                 
                 HStack {
@@ -100,35 +103,40 @@ struct AddPhotoView: View {
                 Spacer()
                 
                 Button {
-                    isLoading = true
                     
-                    if let image = selectedImage {
+                    if !subscriptionManager.isSubscribed {
+                        isPresented = true
+                    } else {
+                        isLoading = true
                         
-                        
-                        guard let imageURL = saveImageToTemporaryDirectory(image: image) else {
-                            print("❌ Ошибка: не удалось сохранить изображение")
-                            isLoading = false
-                            return
-                        }
-                        
-                        // Первый запрос: Генерация видео
-                        NetworkManager.shared.generateImage(
-                            templateId: template.id,
-                            imageURL: imageURL
-                        ) { result in
-                            switch result {
-                            case .success(let generationId):
-                                print("✅ Generation ID получен: \(generationId)")
-                                
-                                // Запуск проверки статуса с интервалом
-                                checkGenerationStatusPeriodically(generationId: ("\(generationId)"))
-                                
-                            case .failure(let error):
-                                print("❌ Ошибка генерации: \(error.localizedDescription)")
-                                
+                        if let image = selectedImage {
+                            
+                            
+                            guard let imageURL = saveImageToTemporaryDirectory(image: image) else {
+                                print("❌ Ошибка: не удалось сохранить изображение")
                                 isLoading = false
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    showAlert = true
+                                return
+                            }
+                            
+                            // Первый запрос: Генерация видео
+                            NetworkManager.shared.generateImage(
+                                templateId: item.idMain,
+                                imageURL: imageURL
+                            ) { result in
+                                switch result {
+                                case .success(let generationId):
+                                    print("✅ Generation ID получен: \(generationId)")
+                                    
+                                    // Запуск проверки статуса с интервалом
+                                    checkGenerationStatusPeriodically(generationId: ("\(generationId)"))
+                                    
+                                case .failure(let error):
+                                    print("❌ Ошибка генерации: \(error.localizedDescription)")
+                                    
+                                    isLoading = false
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        showAlert = true
+                                    }
                                 }
                             }
                         }
@@ -152,7 +160,7 @@ struct AddPhotoView: View {
                 .opacity(selectedImage != nil ? 1 : 0.12)
                 .disabled(selectedImage == nil)
             }
-            .navigationTitle(template.effect)
+            .navigationTitle(item.displayTitle)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .navigationBarItems(
@@ -179,6 +187,9 @@ struct AddPhotoView: View {
             }
             .fullScreenCover(isPresented: $navigateToTextGeneratedView) {
                 TextGeneratedView(item: $generatedItem)
+            }
+            .sheet(isPresented: $isPresented) {
+                PayWall()
             }
             .alert(isPresented: $showAlert) {
                 Alert(
@@ -208,6 +219,7 @@ struct AddPhotoView: View {
             if let data = image.jpegData(compressionQuality: 0.8) {
                 do {
                     try data.write(to: fileURL)
+                    print(" сохранения изображения")
                     return fileURL
                 } catch {
                     print("❌ Ошибка сохранения изображения: \(error.localizedDescription)")
@@ -225,6 +237,7 @@ struct AddPhotoView: View {
         let newTextGenerations = TextGenerations(context: moc)
         newTextGenerations.id = UUID()
         newTextGenerations.date = Date()
+        newTextGenerations.prompt = item.displayTitle
         newTextGenerations.url = nil
         
         self.generatedItem = newTextGenerations
@@ -285,8 +298,8 @@ struct AddPhotoView: View {
     
 }
 
-struct MiniTemplateCard: View {
-    let template: Template
+struct MiniTemplateCard<T: PreviewPlayable>: View {
+    let item: T
     @State private var player: AVPlayer?
     @State private var isLoading = true
     
@@ -314,8 +327,8 @@ struct MiniTemplateCard: View {
     }
     
     private func setupPlayer() {
-        guard let url = URL(string: template.preview) else {
-            print("Invalid URL: \(template.preview)")
+        guard let url = URL(string: item.preview) else {
+            print("Invalid URL: \(item.preview)")
             return
         }
         

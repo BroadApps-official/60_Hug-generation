@@ -1,8 +1,8 @@
 {
   "images" : [
     {
-      "filename" : "paywallImage.png",
-      "idiom" : "iphone"
+      "filename" : "splashLogo.png",
+      "idiom" : "universal"
     }
   ],
   "info" : {

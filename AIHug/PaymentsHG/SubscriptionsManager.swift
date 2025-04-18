@@ -7,6 +7,7 @@ class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()
     @Published var productsApphud: [ApphudProduct] = []
     @Published var isSubscribed: Bool = false
+    @Published var isSubscriptionStatusChecked = false
     
     private let paywallID = "main"
     let buyPublisher = PassthroughSubject<Bool, Never>()
@@ -34,7 +35,7 @@ class SubscriptionManager: ObservableObject {
             let result = await Apphud.hasPremiumAccess()
             DispatchQueue.main.async {
                 self.isSubscribed = result
-                print("✅ Subscribe active: \(result)")
+                self.isSubscriptionStatusChecked = true
             }
         }
     }
@@ -51,6 +52,9 @@ class SubscriptionManager: ObservableObject {
             }
             
             if let subscription = result.subscription, subscription.isActive() {
+                DispatchQueue.main.async {
+                    self.isSubscribed = true
+                }
                 self.buyPublisher.send(true)
                 escaping(true)
                 return
@@ -63,6 +67,9 @@ class SubscriptionManager: ObservableObject {
             }
             
             if Apphud.hasActiveSubscription() {
+                DispatchQueue.main.async {
+                    self.isSubscribed = true
+                }
                 self.buyPublisher.send(true)
                 escaping(true)
                 return

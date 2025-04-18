@@ -4,6 +4,9 @@ import AVKit
 struct AIEffectsView: View {
     
     @StateObject private var viewModel = TemplatesViewModel()
+    @StateObject private var viewModelHailuo = FiltersViewModel()
+    
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
     
     @State private var isPresented = false
     @State private var isLoading: Bool = false
@@ -25,156 +28,182 @@ struct AIEffectsView: View {
                 Color.backgroundPrimary
                     .edgesIgnoringSafeArea(.all)
                 
+                /*
+                 HStack {
+                 Button {
+                 selectedSegment = 0
+                 } label: {
+                 Spacer()
+                 Text("Photo")
+                 .foregroundColor(.labelPrimary)
+                 .font(.footnoteEmphasized)
+                 Spacer()
+                 }
+                 .frame(height: 32)
+                 .background(selectedSegment == 0 ? Color.accentPrimary : Color.clear)
+                 .cornerRadius(8)
+                 .padding(.horizontal, 2)
+                 
+                 Button {
+                 selectedSegment = 1
+                 } label: {
+                 Spacer()
+                 Text("Video")
+                 .foregroundColor(.labelPrimary)
+                 .font(.footnoteEmphasized)
+                 Spacer()
+                 }
+                 .frame(height: 32)
+                 .background(selectedSegment == 1 ? Color.accentPrimary : Color.clear)
+                 .cornerRadius(8)
+                 .padding(.horizontal, 2)
+                 
+                 }
+                 .frame(height: 36)
+                 .background(Color.backgroundTertiary)
+                 .cornerRadius(9)
+                 .padding(.horizontal)
+                 .padding(.top, 10)
+                 */
+                
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack {
-                        /*
-                        HStack {
-                            Button {
-                                selectedSegment = 0
-                            } label: {
-                                Spacer()
-                                Text("Photo")
-                                    .foregroundColor(.labelPrimary)
-                                    .font(.footnoteEmphasized)
-                                Spacer()
-                            }
-                            .frame(height: 32)
-                            .background(selectedSegment == 0 ? Color.accentPrimary : Color.clear)
-                            .cornerRadius(8)
-                            .padding(.horizontal, 2)
-                            
-                            Button {
-                                selectedSegment = 1
-                            } label: {
-                                Spacer()
-                                Text("Video")
-                                    .foregroundColor(.labelPrimary)
-                                    .font(.footnoteEmphasized)
-                                Spacer()
-                            }
-                            .frame(height: 32)
-                            .background(selectedSegment == 1 ? Color.accentPrimary : Color.clear)
-                            .cornerRadius(8)
-                            .padding(.horizontal, 2)
-                            
-                        }
-                        .frame(height: 36)
-                        .background(Color.backgroundTertiary)
-                        .cornerRadius(9)
-                        .padding(.horizontal)
-                        .padding(.top, 10)
-                        */
-                        
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 20) {
-                                ForEach(viewModel.groupedTemplates.keys.sorted(), id: \.self) { category in
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        HStack {
-                                            Text(category)
-                                                .font(.title3Emphasized)
+                    VStack(alignment: .leading, spacing: 20) {
+                        ForEach(viewModel.groupedTemplates.keys.sorted(), id: \.self) { category in
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text(category)
+                                        .font(.title3Emphasized)
+                                        .foregroundColor(.labelPrimary)
+                                    
+                                    Spacer()
+                                    
+                                    NavigationLink(destination: AITemplatesDetailView(title: category, items: viewModel.groupedTemplates[category] ?? [])) {
+                                        HStack(spacing: 5) {
+                                            Text("See all")
+                                                .font(.footnoteRegular)
                                                 .foregroundColor(.labelPrimary)
                                             
-                                            Spacer()
-                                            
-                                            
-                                            NavigationLink(destination: AIEffectsDetailView(category: category, templates: viewModel.groupedTemplates[category] ?? [])) {
-                                                HStack(spacing: 5) {
-                                                    Text("See all")
-                                                        .font(.footnoteRegular)
-                                                        .foregroundColor(.labelPrimary)
-                                                    
-                                                    Image(systemName: "chevron.forward")
-                                                        .font(.system(size: 12))
-                                                        .foregroundColor(.labelPrimary)
-                                                }
-                                                .padding(8)
-                                                .background(Color.backgroundPrimary)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(Color.separatorSecondary, lineWidth: 1)
-                                                )
-                                            }
-                                            
-                                            
+                                            Image(systemName: "chevron.forward")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.labelPrimary)
                                         }
-                                        .padding(.horizontal)
-                                        .padding(.top, 10)
+                                        .padding(8)
+                                        .background(Color.backgroundPrimary)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.separatorSecondary, lineWidth: 1)
+                                        )
+                                    }
+                                    
+                                    
+                                }
+                                .padding(.horizontal)
+                                .padding(.top, 10)
+                                
+                                HStack(spacing: 10) {
+                                    ForEach(viewModel.groupedTemplates[category]?.prefix(2) ?? []) { template in
+                                        NavigationLink(destination: AddPhotoView(item: template)) {
+                                            VideoCardView(item: template)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(height: 250)
+                                
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("Hailuo effects")
+                                    .font(.title3Emphasized)
+                                    .foregroundColor(.labelPrimary)
+                                
+                                Spacer()
+                                
+                                NavigationLink(destination: AITemplatesDetailView(title: "Hailuo effects", items: viewModelHailuo.filters)) {
+                                    HStack(spacing: 5) {
+                                        Text("See all")
+                                            .font(.footnoteRegular)
+                                            .foregroundColor(.labelPrimary)
                                         
-                                        HStack(spacing: 10) {
-                                            ForEach(viewModel.groupedTemplates[category]?.prefix(2) ?? []) { template in
-                                                NavigationLink(destination: AddPhotoView(template: template)) {
-                                                    TemplateCardd(template: template)
-                                                }
-                                            }
-                                        }
-                                        .padding(.horizontal, 16)
-                                        .frame(height: 250)
-
+                                        Image(systemName: "chevron.forward")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.labelPrimary)
+                                    }
+                                    .padding(8)
+                                    .background(Color.backgroundPrimary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.separatorSecondary, lineWidth: 1)
+                                    )
+                                }
+                                
+                                
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 10)
+                            
+                            HStack(spacing: 10) {
+                                ForEach(viewModelHailuo.filters.prefix(2)) { filter in
+                                    NavigationLink(destination: AddPhotoView(item: filter)) {
+                                        VideoCardView(item: filter)
                                     }
                                 }
                             }
+                            .padding(.horizontal, 16)
+                            .frame(height: 250)
                         }
-                        .padding(.top)
-                        .onAppear {
-                            viewModel.fetchTemplates()
-                        }
-                        
-                        Spacer()
-                            .frame(height: 150)
-                        
                     }
-                    .background(GeometryReader { geometry in
-                        Color.clear.onAppear {
-                            self.scrollOffset = geometry.frame(in: .global).minY
-                        }
-                        .onChange(of: geometry.frame(in: .global).minY) { value in
-                            self.scrollOffset = value
-                        }
-                    })
-                    .navigationBarBackButtonHidden(true)
-                    .navigationTitle(
-                        Text("AI effects")
-                    )
-                    .navigationBarTitleDisplayMode(scrollOffset < -100 ? .inline : .large)
-                    .navigationBarItems(
-                        trailing:
-                            Button(action: {
-                                isPresented = true
-                            }, label: {
-                                HStack(spacing: 0) {
-                                    Text("PRO")
-                                        .font(.subheadlineEmphasized)
-                                        .foregroundColor(.labelPrimary)
-                                        .padding(.leading, 10)
-                                    Image(systemName: "sparkles")
-                                        .frame(width: 32, height: 32)
-                                        .foregroundColor(.labelPrimary)
-                                        .font(.system(size: 14))
-                                }
-                                .frame(height: 32)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    ))
-                                .cornerRadius(8)
-                            })
-                            .sheet(isPresented: $isPresented) {
-                                PayWall()
-                            }
-                        
-                    )
+                    
+                    Spacer()
+                        .frame(height: 150)
                 }
-                
-                
+                .padding(.top)
+                .onAppear {
+                    viewModel.fetchTemplates()
+                    viewModelHailuo.fetchFilters()
+                }
+                .navigationBarBackButtonHidden(true)
+                .navigationTitle(
+                    Text("AI effects")
+                )
+                .navigationBarItems(
+                    trailing:
+                        HStack {
+                            if !subscriptionManager.isSubscribed {
+                                Button(action: {
+                                    isPresented = true
+                                }, label: {
+                                    HStack(spacing: 0) {
+                                        Text("PRO")
+                                            .font(.subheadlineEmphasized)
+                                            .foregroundColor(.labelPrimary)
+                                            .padding(.leading, 10)
+                                        Image(systemName: "sparkles")
+                                            .frame(width: 32, height: 32)
+                                            .foregroundColor(.labelPrimary)
+                                            .font(.system(size: 14))
+                                    }
+                                    .frame(height: 32)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ))
+                                    .cornerRadius(8)
+                                })
+                                .sheet(isPresented: $isPresented) {
+                                    PayWall()
+                                }
+                            }
+                        }
+                )
             }
         }
         .fullScreenCover(isPresented: $isLoading) {
             GenerationView()
-        }
-        .fullScreenCover(isPresented: $navigateToTextGeneratedView) {
-            //TextGeneratedView(videoURL: $videoURL, promptText: $promptText)
         }
         .alert(isPresented: $showAlert) {
             Alert(
@@ -228,8 +257,9 @@ struct AIEffectsView: View {
     
 }
 
-struct TemplateCardd: View {
-    let template: Template
+struct VideoCardView<T: PreviewPlayable>: View {
+    let item: T
+    
     @State private var player: AVPlayer?
     @State private var isLoading = true
     @GestureState private var isPressing = false
@@ -264,7 +294,7 @@ struct TemplateCardd: View {
             .frame(height: 52)
             .cornerRadius(12)
             
-            Text(template.effect)
+            Text(item.displayTitle)
                 .font(.subheadlineEmphasized)
                 .foregroundColor(.labelPrimary)
                 .padding(.bottom, 10)
@@ -275,18 +305,17 @@ struct TemplateCardd: View {
         .onAppear {
             setupPlayer()
         }
-        .gesture(
-            LongPressGesture(minimumDuration: 0.2)
-                .updating($isPressing) { currentState, gestureState, _ in
-                    gestureState = currentState
-                }
-                .onEnded { _ in
-                    player?.play()
-                }
-        )
+        //.gesture(
+        //    LongPressGesture(minimumDuration: 0.2)
+        //        .updating($isPressing) { currentState, gestureState, _ in
+        //            gestureState = currentState
+        //        }
+        //        .onEnded { _ in
+        //            player?.play()
+        //        }
+        //)
         .onChange(of: isPressing) { pressing in
             if !pressing {
-                // Остановить видео и вернуть к началу
                 player?.pause()
                 player?.seek(to: .zero)
             }
@@ -294,22 +323,21 @@ struct TemplateCardd: View {
     }
     
     private func setupPlayer() {
-        guard let url = URL(string: template.preview) else { return }
-
+        guard let url = URL(string: item.preview) else { return }
+        
         VideoCacheManager.shared.cacheVideo(url: url) { cachedURL in
             guard let cachedURL = cachedURL else { return }
-
+            
             DispatchQueue.main.async {
                 let newPlayer = AVPlayer(url: cachedURL)
                 newPlayer.isMuted = true
-                newPlayer.actionAtItemEnd = .pause // Остановится в конце
+                newPlayer.actionAtItemEnd = .pause
                 player = newPlayer
                 isLoading = false
             }
         }
     }
 }
-
 
 struct VideoPlayerVieww: UIViewControllerRepresentable {
     @Binding var player: AVPlayer?

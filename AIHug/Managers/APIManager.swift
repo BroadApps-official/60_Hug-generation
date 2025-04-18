@@ -10,8 +10,10 @@ class NetworkManager {
     private let baseURLTemplates = "https://vewapnew.online/api/templates"
     private let generationStatusURL = "https://vewapnew.online/api/generationStatus"
     private let bearerToken = "rE176kzVVqjtWeGToppo4lRcbz3HRLoBrZREEvgQ8fKdWuxySCw6tv52BdLKBkZTOHWda5ISwLUVTyRoZEF0A33Xpk63lF9wTCtDxOs8XK3YArAiqIXVb7ZS4IK61TYPQMu5WqzFWwXtZc1jo8w"
+    private let bearerTokenHailuo = "0e9560af-ab3c-4480-8930-5b6c76b03eea"
+    private let appIdHailuo = "com.test.test"
     private let bundleID = "com.elv.hugg3n3r4t10n"
-    private let userID = UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"
+    private let userID = /*"F452345B-BEEC-43EA-AF96-000000000"*/ UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"
     private let isNew: Bool = true
     private var appName: String = "com.elv.hugg3n3r4t10n"
     private var ai: [String] = ["pika", "pv"]
@@ -43,32 +45,6 @@ class NetworkManager {
             }
     }
     
-    func createUserGeneration(generations: Int, completion: @escaping (Result<Any, Error>) -> Void) {
-        // Query параметры
-        let parameters: [String: Any] = [
-            "userId": userID,
-            "bundleId": bundleID,
-            "generations": generations
-        ]
-        
-        let token = bearerToken
-        let headers: HTTPHeaders = [
-            "Authorization": "Bearer \(token)"
-        ]
-        
-        // Выполняем POST запрос
-        AF.request(baseURL, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
-            .validate()
-            .responseJSON { response in
-                switch response.result {
-                case .success(let data):
-                    completion(.success(data))
-                    print("✅ success")
-                case .failure(let error):
-                    completion(.failure(error))
-                }
-            }
-    }
     
     func fetchTemplates(completion: @escaping (Result<Any, Error>) -> Void) {
         var parameters: [String: Any] = [:]
@@ -97,6 +73,34 @@ class NetworkManager {
                 }
             }
     }
+    
+    func fetchFilters(completion: @escaping (Result<Any, Error>) -> Void) {
+        
+        let baseURLFilters = "https://futuretechapps.shop/filters"
+        
+        let parameters: [String: Any] = [
+            "appId": "com.test.test",
+            "userId": "F452345B-BEEC-43EA-AF96-000000000"
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(bearerTokenHailuo)"
+        ]
+
+        AF.request(baseURLFilters, method: .get, parameters: parameters, headers: headers)
+            .validate()
+            .responseJSON { response in
+                switch response.result {
+                case .success(let data):
+                    print("✅ Filters response: \(data)")
+                    completion(.success(data))
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+
+
     
     func generateImage(templateId: Int?, imageURL: URL?, completion: @escaping (Result<String, Error>) -> Void) {
         let generateURL = "https://vewapnew.online/api/generate"
@@ -132,6 +136,8 @@ class NetworkManager {
         .responseJSON { response in
             switch response.result {
             case .success(let data):
+                print("✅ Ответ от сервера: \(data)")
+                
                 if let json = data as? [String: Any],
                    let responseData = json["data"] as? [String: Any],
                    let generationId = responseData["generationId"] as? String {
@@ -236,8 +242,6 @@ class NetworkManager {
             }
         }
     }
-
-
     
     func getGenerationStatus(generationId: String, completion: @escaping (Result<String, Error>) -> Void) {
         let parameters: [String: String] = [
@@ -248,13 +252,11 @@ class NetworkManager {
             "Authorization": "Bearer \(bearerToken)"
         ]
         
-        // Выполняем GET запрос
         AF.request(generationStatusURL, method: .get, parameters: parameters, headers: headers)
             .validate()
             .responseJSON { response in
                 switch response.result {
                 case .success(let data):
-                    // Парсим ответ
                     do {
                         let responseObject = try JSONDecoder().decode(GenerationStatusResponse.self, from: response.data!)
                         
@@ -274,24 +276,4 @@ class NetworkManager {
                 }
             }
     }
-    
-    
-    
 }
-
-
-
-
-/*
-curl -X POST "https://vewapnew.online/api/generate/txt2video" \
--H "Authorization: Bearer rE176kzVVqjtWeGToppo4lRcbz3HRLoBrZREEvgQ8fKdWuxySCw6tv52BdLKBkZTOHWda5ISwLUVTyRoZEF0A33Xpk63lF9wTCtDxOs8XK3YArAiqIXVb7ZS4IK61TYPQMu5WqzFWwXtZc1jo8w" \
--H "Content-Type: multipart/form-data" \
--F "promptText= dancingbananas" \
--F "userId=34F6DF69-9D4D-4B02-B801-B5FA211DCE08" \
--F "appId=com.elv.hugg3n3r4t10n"
-
-
-curl -X GET "https://vewapnew.online/api/generationStatus?generationId=26262d9b-a3c0-4aa1-8951-91414a9bb9c0" \
--H "Authorization: Bearer rE176kzVVqjtWeGToppo4lRcbz3HRLoBrZREEvgQ8fKdWuxySCw6tv52BdLKBkZTOHWda5ISwLUVTyRoZEF0A33Xpk63lF9wTCtDxOs8XK3YArAiqIXVb7ZS4IK61TYPQMu5WqzFWwXtZc1jo8w" \
--H "Accept: application/json"
-*/

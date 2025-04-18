@@ -1,13 +1,13 @@
 import SwiftUI
 
-struct AIEffectsDetailView: View {
+struct AITemplatesDetailView<T: Identifiable & PreviewPlayable>: View {
     
     @Environment(\.presentationMode) var presentationMode
     
-    let category: String
-    let templates: [Template]
+    let title: String
+    let items: [T]
     
-    let columns = [
+    private let columns = [
         GridItem(.flexible(), spacing: 10),
         GridItem(.flexible(), spacing: 10)
     ]
@@ -15,21 +15,17 @@ struct AIEffectsDetailView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVGrid(columns: columns, spacing: 20) {
-                ForEach(templates) { template in
-                    
-                    NavigationLink(destination: AddPhotoView(template: template)) {
-                            TemplateCardd(
-                                template: template
-                            )
-                        }
+                ForEach(items) { item in
+                    NavigationLink(destination: AddPhotoView(item: item)) {
+                        VideoCardView(item: item)
+                    }
                 }
             }
             .padding()
             
-            Spacer()
-                .frame(height: 150)
+            Spacer().frame(height: 150)
         }
-        .navigationTitle(category)
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .navigationBarItems(

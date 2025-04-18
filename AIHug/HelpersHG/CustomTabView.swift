@@ -4,6 +4,8 @@ struct CustomTabView: View {
     
     @State private var selectedIndex = 0
     @State private var showRateUsSheet = false
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @State private var isPresented = false
     
     var body: some View {
         ZStack {
@@ -62,6 +64,14 @@ struct CustomTabView: View {
             }
             .edgesIgnoringSafeArea(.bottom)
             
+        }
+        .onChange(of: subscriptionManager.isSubscriptionStatusChecked) { checked in
+            if checked && !subscriptionManager.isSubscribed {
+                isPresented = true
+            }
+        }
+        .fullScreenCover(isPresented: $isPresented) {
+            PayWall()
         }
         .onAppear {
             checkAppLaunchCount()
