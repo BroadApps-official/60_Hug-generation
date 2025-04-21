@@ -22,7 +22,8 @@ struct PayWall: View {
                     ZStack {
                         
                         VStack {
-                            Image("paywallImage")
+                            
+                            Image("paywallImageAIHug")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(maxWidth: .infinity)
