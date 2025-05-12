@@ -246,7 +246,7 @@ struct SettingsView: View {
                             
                             HStack() {
                                 Spacer()
-                                Text("App Version: 1.2.4")
+                                Text("App Version: 1.2.5")
                                     .font(.footnoteRegular)
                                     .foregroundColor(Color.labelTertiary)
                                 Spacer()
