@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 
 protocol PreviewPlayable {
-    var preview: String { get }
+    var previewURL: String { get }
     var displayTitle: String { get }
     var idMain: Int { get }
     
@@ -20,6 +20,10 @@ struct Template: Identifiable, Decodable {
 }
 
 extension Template: PreviewPlayable {
+    var previewURL: String {
+        preview
+    }
+    
     var displayTitle: String { effect }
     var idMain: Int { id }
 }
@@ -57,6 +61,10 @@ struct Filter: Identifiable, Decodable {
 }
 
 extension Filter: PreviewPlayable {
+    var previewURL: String {
+        preview
+    }
+    
     var displayTitle: String { title }
     var idMain: Int { id }
 }
@@ -91,6 +99,147 @@ class FiltersViewModel: ObservableObject {
 }
 
 
+struct ScenariosResponse: Decodable {
+    let error: Bool
+    let message: String?
+    let data: ScenarioListData
+}
+
+struct ScenarioListData: Decodable {
+    let list: [ScenarioGroup]
+}
+
+struct ScenarioGroup: Decodable, Identifiable {
+    let id: Int
+    let title: String
+    let preview: String
+    let isNew: Bool
+    let totalScenarios: Int
+    let scenarios: [ScenarioItem]
+}
+
+struct ScenarioItem: Decodable, Identifiable {
+    let id: Int
+    let title: String?
+    let preview: String
+    let previewProduction: String
+    let previewVideo: String
+    let gender: String
+    let isEnabled: Bool
+    let mediaType: String
+}
+
+extension ScenarioItem: PreviewPlayable {
+    var previewURL: String {
+        previewVideo
+    }
+    var displayTitle: String { title ?? "" }
+    var idMain: Int { id }
+}
+
+
+class ScenariosViewModel: ObservableObject {
+    @Published var groups: [ScenarioGroup] = []
+
+    func fetchScenarios() {
+        print("⏳ fetchScenarios вызван")
+        
+        NetworkManager.shared.fetchScenarios { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let data):
+                    if let dict = data as? [String: Any],
+                       let dataDict = dict["data"] as? [String: Any],
+                       let listArray = dataDict["list"] as? [[String: Any]],
+                       let jsonData = try? JSONSerialization.data(withJSONObject: listArray),
+                       let decoded = try? JSONDecoder().decode([ScenarioGroup].self, from: jsonData) {
+
+                        self.groups = decoded
+                        print("✅ decoded groups: \(decoded.count) штук")
+                    } else {
+                        print("❌ Ошибка парсинга групп")
+                    }
+                case .failure(let error):
+                    print("❌ Ошибка загрузки сценариев: \(error)")
+                }
+            }
+        }
+    }
+}
+
+
+
+struct EffectsResponse: Decodable {
+    let error: Bool
+    let message: String?
+    let data: EffectsData
+}
+
+struct EffectsData: Decodable {
+    let list: [EffectGroup]
+}
+
+struct EffectGroup: Decodable, Identifiable {
+    let id: Int
+    let title: String
+    let preview: String?
+    let isNew: Bool
+    let totalEffects: Int
+    let totalUsed: Int
+    let effects: [EffectItem]
+}
+
+struct EffectItem: Decodable, Identifiable {
+    let id: Int
+    let title: String
+    let preview: String
+    let previewProduction: String
+    let gender: String?
+    let prompt: String?
+    let isEnabled: Bool
+}
+
+
+extension EffectItem: PreviewPlayable {
+    var previewURL: String { previewProduction }
+    var displayTitle: String { title }
+    var idMain: Int { id }
+}
+
+class EffectsViewModel: ObservableObject {
+    @Published var groups: [EffectGroup] = []
+    
+    func fetchEffectsFotobudka() {
+        print("⏳ fetchEffectsFotobudka вызван")
+        
+        NetworkManager.shared.fetchEffectsFotobudka { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let data):
+                    if let dict = data as? [String: Any],
+                       let dataDict = dict["data"] as? [String: Any],
+                       let listArray = dataDict["list"] as? [[String: Any]],
+                       let jsonData = try? JSONSerialization.data(withJSONObject: listArray),
+                       let decoded = try? JSONDecoder().decode([EffectGroup].self, from: jsonData) {
+                        
+                        self.groups = decoded
+                        print("✅ decoded effects groups: \(decoded.count) штук")
+                    } else {
+                        print("❌ Ошибка парсинга эффектов")
+                    }
+                case .failure(let error):
+                    print("❌ Ошибка загрузки эффектов: \(error)")
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
 
 struct GenerationStatusResponse: Decodable {
     let error: Bool
@@ -106,6 +255,33 @@ struct GenerationData: Decodable {
     let totalWeekGenerations: Int
     let maxGenerations: Int
 }
+
+struct GenerationStatusResponseFotobudka: Decodable {
+    let error: Bool
+    let message: String?
+    let data: GenerationDataFotobudka
+}
+
+struct GenerationDataFotobudka: Decodable {
+    let id: Int
+    let generationId: Int
+    let jobId: String
+    let templateId: Int
+    let preview: String?
+    let resultUrl: String
+    let status: String
+    let isGodMode: Bool
+    let isCouplePhoto: Bool
+    let isPV: Bool
+    let isPika: Bool
+    let isTxt2Img: Bool
+    let isMarked: Bool
+    let mark: String?
+    let seconds: Int
+    let startedAt: String
+    let finishedAt: String
+}
+
 
 enum NetworkError: Error {
     case invalidURL

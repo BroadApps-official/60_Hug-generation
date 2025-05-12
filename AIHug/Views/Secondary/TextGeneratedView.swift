@@ -11,6 +11,7 @@ struct TextGeneratedView: View {
     @Environment(\.managedObjectContext) var moc
     
     @Binding var item: TextGenerations?
+    @State var type: String?
     
     @State private var player: AVPlayer? = nil
     @State private var isPlaying = true
@@ -39,52 +40,93 @@ struct TextGeneratedView: View {
                     .edgesIgnoringSafeArea(.all)
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
-                        if item?.styleName == nil {
-                            Spacer()
-                                .frame(height: 100)
+                        
+                        if item?.prompt == nil {
+                            if item?.type == "video" {
+                                Spacer()
+                                    .frame(height: 100)
+                            } else {
+                                Spacer()
+                                    .frame(height: 50)
+                            }
+                            
                         }
                         
-                        RoundedRectangle(cornerRadius: 12)
-                            .foregroundColor(.backgroundSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 445)
-                            .overlay(
-                                ZStack {
-                                    VideoPlayerView(player: $player)
-                                        .cornerRadius(12)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            showControlsTemporarily()
+                        if item?.type == "video" {
+                            RoundedRectangle(cornerRadius: 12)
+                                .foregroundColor(.backgroundSecondary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 445)
+                                .overlay(
+                                    ZStack {
+                                        VideoPlayerView(player: $player)
+                                            .cornerRadius(12)
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                showControlsTemporarily()
+                                            }
+                                        
+                                        if isLoading {
+                                            ProgressView()
+                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                                .scaleEffect(2)
+                                                .frame(width: 76, height: 76)
+                                                .background(BlurView(style: .systemUltraThinMaterial))
+                                                .cornerRadius(38)
                                         }
-                                    
-                                    if isLoading {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                            .scaleEffect(2)
-                                            .frame(width: 76, height: 76)
-                                            .background(BlurView(style: .systemUltraThinMaterial))
-                                            .cornerRadius(38)
+                                        
+                                        Button(action: togglePlayPause) {
+                                            Image(systemName: isPlaying ? "pause" : "play.fill")
+                                                .font(.largeTitleRegular)
+                                                .frame(width: 76, height: 76)
+                                                .background(BlurView(style: .systemUltraThinMaterial))
+                                                .cornerRadius(38)
+                                                .foregroundColor(.white)
+                                        }
+                                        .opacity(isLoading ? 0 : (isControlsVisible ? 1 : 0))
+                                        .animation(.easeInOut(duration: 0.25), value: isControlsVisible)
+                                        .allowsHitTesting(isControlsVisible && !isLoading)
                                     }
-                                    
-                                    Button(action: togglePlayPause) {
-                                        Image(systemName: isPlaying ? "pause" : "play.fill")
-                                            .font(.largeTitleRegular)
-                                            .frame(width: 76, height: 76)
-                                            .background(BlurView(style: .systemUltraThinMaterial))
-                                            .cornerRadius(38)
-                                            .foregroundColor(.white)
-                                    }
-                                    .opacity(isLoading ? 0 : (isControlsVisible ? 1 : 0))
-                                    .animation(.easeInOut(duration: 0.25), value: isControlsVisible)
-                                    .allowsHitTesting(isControlsVisible && !isLoading)
+                                )
+                                .padding()
+                                .onAppear {
+                                    setupPlayer()
                                 }
-                            )
-                            .padding()
-                            .onAppear {
-                                setupPlayer()
+                        } else {
+                            if let urlString = item?.url, let url = URL(string: urlString) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(width: 76, height: 76)
+                                            .background(BlurView(style: .systemUltraThinMaterial))
+                                            .cornerRadius(38)
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .clipped()
+                                            .cornerRadius(12)
+                                    case .failure:
+                                        Image(systemName: "xmark.octagon")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 40, height: 40)
+                                            .foregroundColor(.red)
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                                .frame(height: 490)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .padding()
                             }
+
+                        }
                         
-                        if item?.styleName != nil {
+                        
+                        if item?.prompt != nil {
                             HStack {
                                 Text("Prompt")
                                     .font(.title3Emphasized)
@@ -106,41 +148,34 @@ struct TextGeneratedView: View {
                             Text(item?.prompt ?? "")
                                 .foregroundColor(.labelPrimary)
                                 .font(.bodyRegular)
-                                .padding()
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.backgroundTertiary)
-                                .cornerRadius(14)
                                 .padding(.horizontal)
+                                .padding(.bottom)
                             
+                        
+                        }
+                        
+                        if let data = item?.photoreference, let image = UIImage(data: data) {
                             HStack {
-                                Text("Style")
-                                    .font(.title3Emphasized)
-                                    .foregroundColor(.labelPrimary)
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .padding(.top)
-                            .padding(.bottom, 10)
-                            
-                            HStack(spacing: 16) {
-                                Image(item?.styleImageName ?? "")
+                                Image(uiImage: image)
                                     .resizable()
                                     .scaledToFill()
-                                    .clipShape(Circle())
-                                    .frame(width: 56, height: 56)
-                                
-                                Text(item?.styleName ?? "")
-                                    .font(.bodyRegular)
-                                    .foregroundColor(.labelPrimary)
-                                
-                                Spacer()
+                                    .frame(width: 100, height: 100)
+                                    .padding(0)
+                                    .cornerRadius(12)
+                                    .clipped()
                             }
                             .padding(.horizontal)
-                            
-                            Spacer()
-                                .frame(height: 150)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 132)
+                            .background(Color.backgroundTertiary)
+                            .cornerRadius(12)
+                            .padding(.horizontal)
                         }
+                        
+                        Spacer()
+                            .frame(height: 150)
+
                     }
                 }
                 
@@ -571,23 +606,6 @@ struct TextGeneratedView: View {
         } catch {
             print("Error deleting item: \(error.localizedDescription)")
         }
-    }
-}
-
-struct VideoPlayerView: UIViewControllerRepresentable {
-    @Binding var player: AVPlayer?
-    
-    func makeUIViewController(context: Context) -> UIViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.showsPlaybackControls = false
-        controller.videoGravity = .resizeAspectFill
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        guard let controller = uiViewController as? AVPlayerViewController else { return }
-        controller.player = player
     }
 }
 

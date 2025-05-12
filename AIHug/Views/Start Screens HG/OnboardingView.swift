@@ -11,7 +11,7 @@ struct itemModel {
 struct OnboardingView: View {
     
     @State private var currentStep: Int = 0
-    @Binding var showTabView: Bool
+    var onFinish: () -> Void
     
     private let vm: [itemModel] = [
         itemModel(
@@ -107,7 +107,8 @@ struct OnboardingView: View {
                 
                 if currentStep == 4 {
                     Button {
-                        showTabView = true
+                        UserDefaults.standard.set(true, forKey: "isFirstLaunch")
+                        onFinish()
                     } label: {
                         Text("Maybe Later")
                             .foregroundColor(.labelTertiary)
@@ -151,8 +152,9 @@ struct OnboardingView: View {
             }
             
             DispatchQueue.main.async {
-                showTabView = true
+                onFinish()
             }
+
         }
     }
     

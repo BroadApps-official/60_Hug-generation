@@ -7,12 +7,22 @@ struct HistoryView: View {
     @Environment(\.managedObjectContext) var moc
     
     @State private var isPresented = false
-    @State private var selectedSegment = 1
+    @State private var selectedSegment = 0
     @State private var navigateToTextGeneratedView = false
     
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     
+    var videoItems: [TextGenerations] {
+        textGenerationItems.filter { $0.type == "video" }
+    }
+
+    // Фото (все, что не видео)
+    var photoItems: [TextGenerations] {
+        textGenerationItems.filter { $0.type != "video" }
+    }
+    
     @State private var selectedItem: TextGenerations?
+    @State private var selectedItemType: String?
     
     let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -27,44 +37,55 @@ struct HistoryView: View {
                     .edgesIgnoringSafeArea(.all)
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack {
-                        /*
-                         HStack {
-                         Button {
-                         selectedSegment = 0
-                         } label: {
-                         Spacer()
-                         Text("Photo")
-                         .foregroundColor(.labelPrimary)
-                         .font(.footnoteEmphasized)
-                         Spacer()
-                         }
-                         .frame(height: 32)
-                         .background(selectedSegment == 0 ? Color.accentPrimary : Color.clear)
-                         .cornerRadius(8)
-                         .padding(.horizontal, 2)
-                         
-                         Button {
-                         selectedSegment = 1
-                         } label: {
-                         Spacer()
-                         Text("Video")
-                         .foregroundColor(.labelPrimary)
-                         .font(.footnoteEmphasized)
-                         Spacer()
-                         }
-                         .frame(height: 32)
-                         .background(selectedSegment == 1 ? Color.accentPrimary : Color.clear)
-                         .cornerRadius(8)
-                         .padding(.horizontal, 2)
-                         
-                         }
-                         .frame(height: 36)
-                         .background(Color.backgroundTertiary)
-                         .cornerRadius(9)
-                         .padding(.horizontal)
-                         .padding(.top, 10)
-                         */
-                        if textGenerationItems.isEmpty {
+                        
+                        HStack {
+                            Button {
+                                selectedSegment = 0
+                            } label: {
+                                Spacer()
+                                Image(systemName: "sparkles")
+                                    .foregroundColor(selectedSegment == 0 ? Color.labelPrimary : Color.labelTertiary)
+                                    .font(.system(size: 14))
+                                Text("Video")
+                                    .foregroundColor(selectedSegment == 0 ? Color.labelPrimary : Color.labelTertiary)
+                                    .font(.footnoteEmphasized)
+                                Spacer()
+                            }
+                            .frame(height: 40)
+                            .background(selectedSegment == 0 ? Color.accentPrimaryAlpha : Color.backgroundTertiary)
+                            .cornerRadius(20)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(selectedSegment == 0 ? Color.accentPrimary : Color.clear, lineWidth: 2)
+                            )
+                            .padding(.horizontal, 2)
+                            
+                            Button {
+                                selectedSegment = 1
+                            } label: {
+                                Spacer()
+                                Image(systemName: "photo.tv")
+                                    .foregroundColor(selectedSegment == 1 ? Color.labelPrimary : Color.labelTertiary)
+                                    .font(.system(size: 14))
+                                Text("Photo")
+                                    .foregroundColor(selectedSegment == 1 ? Color.labelPrimary : Color.labelTertiary)
+                                    .font(.footnoteEmphasized)
+                                Spacer()
+                            }
+                            .frame(height: 40)
+                            .background(selectedSegment == 1 ? Color.accentPrimaryAlpha : Color.backgroundTertiary)
+                            .cornerRadius(20)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(selectedSegment == 1 ? Color.accentPrimary : Color.clear, lineWidth: 2)
+                            )
+                            .padding(.horizontal, 2)
+                            
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                        
+                        if (selectedSegment == 0 && videoItems.isEmpty) || (selectedSegment == 1 && photoItems.isEmpty) {
                             ZStack {
                                 
                                 VStack(spacing: 10) {
@@ -89,6 +110,7 @@ struct HistoryView: View {
                                         
                                     }
                                     .padding(.horizontal)
+
                                     
                                 }
                                 
@@ -111,23 +133,39 @@ struct HistoryView: View {
                                     Text("Create your first generation")
                                         .font(.footnoteRegular)
                                         .foregroundColor(.labelSecondary)
+                                    
+                                    Button {
+                                        
+                                    } label: {
+                                        Text("Create")
+                                            .foregroundColor(.labelPrimary)
+                                            .font(.bodyEmphasized)
+                                            .frame(width: 280, height: 48)
+                                            .background(Color.accentPrimary)
+                                            .cornerRadius(12)
+                                    }
+                                    .padding(.top)
+                                    
                                 }
                                 
                             }
                             .padding(.top)
                         } else {
+
                             ScrollView {
                                 LazyVGrid(columns: columns, spacing: 20) {
-                                    ForEach(textGenerationItems, id: \.id) { item in
+                                    ForEach(selectedSegment == 0 ? videoItems : photoItems, id: \.id) { item in
                                         HistoryItemCard(textGenerationItems: item)
                                             .onTapGesture {
                                                 selectedItem = item
+                                                selectedItemType = item.type ?? "video"
                                                 navigateToTextGeneratedView = true
                                             }
                                     }
                                 }
                                 .padding()
                             }
+
                         }
                         
                         Spacer()
@@ -165,7 +203,7 @@ struct HistoryView: View {
                                             ))
                                         .cornerRadius(8)
                                     })
-                                    .sheet(isPresented: $isPresented) {
+                                    .fullScreenCover(isPresented: $isPresented) {
                                         PayWall()
                                     }
                                 }
@@ -176,98 +214,8 @@ struct HistoryView: View {
             }
         }
         .fullScreenCover(isPresented: $navigateToTextGeneratedView) {
-            
-            TextGeneratedView(item: $selectedItem)
-            
+            TextGeneratedView(item: $selectedItem, type: selectedItemType)
         }
     }
     
-}
-
-struct HistoryItemCard: View {
-    let textGenerationItems: TextGenerations
-    @State private var player: AVPlayer?
-    @State private var isLoading = true
-    @GestureState private var isPressing = false
-    
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            if isLoading {
-                Color.gray.opacity(0.3)
-                    .frame(height: 250)
-                    .frame(maxWidth: .infinity)
-                    .cornerRadius(12)
-                    .overlay(
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    )
-            } else {
-                VideoPlayerVieww(player: $player)
-                    .frame(height: 250)
-                    .frame(maxWidth: .infinity)
-                    .cornerRadius(12)
-            }
-            
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 25/255, green: 25/255, blue: 25/255),
-                    Color(red: 21/255, green: 21/255, blue: 21/255, opacity: 0.5),
-                    Color(red: 32/255, green: 32/255, blue: 32/255, opacity: 0)
-                ]),
-                startPoint: .bottom,
-                endPoint: .top
-            )
-            .frame(height: 52)
-            .cornerRadius(12)
-            .overlay(
-                HStack {
-                    Spacer()
-                    Text(textGenerationItems.prompt ?? "No prompt")
-                        .foregroundColor(.white)
-                        .font(.subheadlineEmphasized)
-                        .lineLimit(1)
-                        .multilineTextAlignment(.center)
-                        .padding(.bottom, 8)
-                    Spacer()
-                }
-            )
-        }
-        .frame(height: 250)
-        .frame(maxWidth: .infinity)
-        .onAppear {
-            setupPlayer()
-        }
-        //.gesture(
-        //    LongPressGesture(minimumDuration: 0.2)
-        //        .updating($isPressing) { currentState, gestureState, _ in
-        //            gestureState = currentState
-        //        }
-        //        .onEnded { _ in
-        //            player?.play()
-        //        }
-        //)
-        .onChange(of: isPressing) { pressing in
-            if !pressing {
-                player?.pause()
-                player?.seek(to: .zero)
-            }
-        }
-    }
-    
-    private func setupPlayer() {
-        guard let urlString = textGenerationItems.url,
-              let url = URL(string: urlString) else { return }
-        
-        VideoCacheManager.shared.cacheVideo(url: url) { cachedURL in
-            guard let cachedURL = cachedURL else { return }
-            
-            DispatchQueue.main.async {
-                let newPlayer = AVPlayer(url: cachedURL)
-                newPlayer.isMuted = true
-                newPlayer.actionAtItemEnd = .pause
-                player = newPlayer
-                isLoading = false
-            }
-        }
-    }
 }

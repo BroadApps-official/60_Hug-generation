@@ -1,14 +1,14 @@
 import SwiftUI
 
-struct PayWall: View {
+struct AvatarPayWall: View {
     
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
-    @State private var selectedPlan: SubscriptionPlan?
-    @State private var subscriptionPlans: [SubscriptionPlan] = []
 
     @State private var showCloseButton = false
     @State private var isPurchasing = false
+    @State private var subscriptionPlans: [SubscriptionPlansAvatar] = []
+    @State private var selectedPlan: SubscriptionPlansAvatar?
     
     
     var body: some View {
@@ -23,7 +23,7 @@ struct PayWall: View {
                         
                         VStack {
                             
-                            Image("paywallImageAIHug")
+                            Image("AvatarPaywallImage")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(maxWidth: .infinity)
@@ -46,77 +46,46 @@ struct PayWall: View {
                             
                             Spacer()
                             
-                            VStack {
-                                Text("Unreal videos with PRO")
+                            VStack(spacing: 0) {
+                                HStack {
+                                    Text("Avatars available at one time:")
+                                        .font(.footnoteRegular)
+                                        .foregroundColor(.labelSecondary)
+                                    
+                                    Text("1")
+                                        .font(.subheadlineEmphasized)
+                                        .foregroundColor(.labelPrimary)
+                                }
+                                
+                                
+                                Text("Create more avatars")
                                     .font(.title1Emphasized)
                                     .foregroundColor(.labelPrimary)
+                                    .padding(.vertical, 10)
                                 
-                                Spacer()
+                                Text("Buy extra avatars")
+                                    .font(.footnoteRegular)
+                                    .foregroundColor(.labelSecondary)
                                 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Image(systemName: "sparkles")
-                                            .font(.caption1Regular)
-                                            .foregroundColor(.accentPrimary)
-                                        
-                                        Text("Access to all effects")
-                                            .font(.subheadlineEmphasized)
-                                            .foregroundColor(.labelSecondary)
-                                    }
-                                    .frame(height: 32)
-                                    
-                                    HStack {
-                                        Image(systemName: "sparkles")
-                                            .font(.caption1Regular)
-                                            .foregroundColor(.accentPrimary)
-                                        
-                                        Text("Unlimited generation")
-                                            .font(.subheadlineEmphasized)
-                                            .foregroundColor(.labelSecondary)
-                                    }
-                                    .frame(height: 32)
-                                    
-                                    HStack {
-                                        Image(systemName: "sparkles")
-                                            .font(.caption1Regular)
-                                            .foregroundColor(.accentPrimary)
-                                        
-                                        Text("Access to all functions")
-                                            .font(.subheadlineEmphasized)
-                                            .foregroundColor(.labelSecondary)
-                                    }
-                                    .frame(height: 32)
-                                }
                             }
-                            .frame(height: 154)
+                            .frame(height: 95)
                             
                             Spacer()
-                                .frame(height: 20)
+                                .frame(height: 30)
                             
                             VStack(spacing: 12) {
                                 ForEach(subscriptionPlans, id: \.productId) { plan in
-                                    SubscriptionButton(plan: plan, selectedPlan: $selectedPlan)
+                                    SubscriptionButtonAvatar(plan: plan, selectedPlan: $selectedPlan)
                                 }
                             }
                             
                             Spacer()
-                                .frame(height: 16)
+                                .frame(height: 30)
                         }
                     }
                     
                     
                     VStack(spacing: 0) {
-                        
-                        HStack(alignment: .top) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.caption1Regular)
-                                .foregroundColor(.labelQuaternary)
-                            
-                            Text("Cancel Anytime")
-                                .font(.caption1Regular)
-                                .foregroundColor(.labelQuaternary)
-                        }
-                        .frame(height: 32)
                         
                         Button {
                             purchaseSubscription()
@@ -179,28 +148,13 @@ struct PayWall: View {
                     showCloseButton = true
                 }
                 
-                let plans = SubscriptionPlan.from(productIds: subscriptionManager.productsApphud.map(\.productId))
+                let plans = SubscriptionPlansAvatar.from(productIds: subscriptionManager.avatarsApphud.map(\.productId))
                     subscriptionPlans = plans
-                    
-                    // Устанавливаем выбранный по умолчанию (например, годовой)
-                    if let yearly = plans.first(where: { $0.title == "Year" }) {
-                        selectedPlan = yearly
-                    } else {
-                        selectedPlan = plans.first
-                    }
                 
             }
-            .onChange(of: subscriptionManager.productsApphud) { newProducts in
-                let plans = SubscriptionPlan.from(productIds: newProducts.map(\.productId))
+            .onChange(of: subscriptionManager.avatarsApphud) { newProducts in
+                let plans = SubscriptionPlansAvatar.from(productIds: newProducts.map(\.productId))
                 subscriptionPlans = plans
-                
-                if selectedPlan == nil {
-                    if let yearly = plans.first(where: { $0.title == "Year" }) {
-                        selectedPlan = yearly
-                    } else {
-                        selectedPlan = plans.first
-                    }
-                }
             }
 
         }
@@ -218,13 +172,12 @@ struct PayWall: View {
     private func purchaseSubscription() {
         guard let plan = selectedPlan else { return }
         isPurchasing = true
-        guard let product = subscriptionManager.productsApphud.first(where: { $0.skProduct?.productIdentifier == plan.productId }) else {
+        guard let product = subscriptionManager.avatarsApphud.first(where: { $0.skProduct?.productIdentifier == plan.productId }) else {
             isPurchasing = false
             return
         }
         subscriptionManager.startPurchase(product: product) { success in
             isPurchasing = false
-            NetworkManager.shared.setPaidPlan()
             if success { presentationMode.wrappedValue.dismiss() }
         }
     }
@@ -237,34 +190,33 @@ struct PayWall: View {
     
 }
 
-struct SubscriptionButton: View {
+struct SubscriptionButtonAvatar: View {
     
-    let plan: SubscriptionPlan
-    @Binding var selectedPlan: SubscriptionPlan?
+    let plan: SubscriptionPlansAvatar
+    @Binding var selectedPlan: SubscriptionPlansAvatar?
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     
     var body: some View {
         Button(action: {selectedPlan = plan}) {
             HStack(spacing: 0) {
-                Image(systemName: selectedPlan == plan ? "button.programmable" : "circle")
-                    .foregroundColor(selectedPlan == plan ? .accentPrimary : .labelQuintuple)
-                    .frame(width: 32, height: 32)
-                    .padding(.horizontal, 8)
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Just \(subscriptionManager.getProductPrice(for: plan.productId)) / \(plan.title)")
+                    Text(plan.count)
                         .font(.bodyEmphasized)
                         .foregroundColor(.labelPrimary)
+                        .padding(.trailing, 4)
                     
-                    Text("Auto renewable. Cancel anytime.")
-                        .font(.caption1Regular)
-                        .foregroundColor(.labelQuaternary)
+                    Text(plan.title)
+                        .font(.bodyRegular)
+                        .foregroundColor(.labelTertiary)
                     
-                }
-                
                 Spacer()
                 
+                Text(subscriptionManager.getAvatarPrice(for: plan.productId))
+                    .font(.bodyRegular)
+                    .foregroundColor(.labelPrimary)
+                
             }
+            .padding(.horizontal)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(selectedPlan == plan ? Color.backgroundPrimaryAlpha : Color.backgroundTertiary)
@@ -278,25 +230,24 @@ struct SubscriptionButton: View {
     }
 }
 
-struct SubscriptionPlan: Equatable {
+struct SubscriptionPlansAvatar: Equatable {
+    let count: String
     let title: String
     let productId: String
     
-    static func from(productIds: [String]) -> [SubscriptionPlan] {
+    static func from(productIds: [String]) -> [SubscriptionPlansAvatar] {
         productIds.map { id in
+            let count: String
             let title: String
-            if id.contains("year") || id.contains("annual") {
-                title = "Year"
-            } else if id.contains("month") {
-                title = "Month"
-            } else if id.contains("week") {
-                title = "Week"
-            } else if id.contains("day") {
-                title = "Day"
+            
+            if id.contains("avatar") || id.contains("annual") {
+                count = "1";
+                title = "avatar"
             } else {
+                count = "-"
                 title = "Unknown"
             }
-            return SubscriptionPlan(title: title, productId: id)
+            return SubscriptionPlansAvatar(count: count, title: title, productId: id)
         }
     }
 }

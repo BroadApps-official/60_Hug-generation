@@ -1,11 +1,11 @@
 import SwiftUI
 
-struct AITemplatesDetailView<T: Identifiable & PreviewPlayable>: View {
+struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
     
     @Environment(\.presentationMode) var presentationMode
     
-    let title: String
     let items: [T]
+    let type: String
     
     private let columns = [
         GridItem(.flexible(), spacing: 10),
@@ -15,18 +15,21 @@ struct AITemplatesDetailView<T: Identifiable & PreviewPlayable>: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVGrid(columns: columns, spacing: 20) {
-                ForEach(items) { item in
-                    NavigationLink(destination: AddPhotoView(item: item)) {
-                        VideoCardView(item: item)
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    NavigationLink(destination: AddPhotoView(items: items, selectedIndex: index, aiModel: "", type: type)) {
+                        if type == "video" {
+                            VideoCardView(item: item)
+                        } else {
+                            ImageCardView(item: item)
+                        }
                     }
                 }
+
             }
             .padding()
             
             Spacer().frame(height: 150)
         }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .navigationBarItems(
             leading:

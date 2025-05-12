@@ -13,9 +13,9 @@ struct CustomTabView: View {
             ZStack {
                 switch selectedIndex {
                 case 0:
-                    GenerateView()
+                    AIVideoView()
                 case 1:
-                    AIEffectsView()
+                    AIPhotoView()
                 case 2:
                     HistoryView()
                 case 3:
@@ -33,17 +33,17 @@ struct CustomTabView: View {
                     Spacer()
                         .frame(width: 10)
                     
-                    TabBarItem(iconName: "sparkles", title: "Generate", isSelected: selectedIndex == 0)
+                    TabBarItem(iconName: "sparkles", title: "AI Video", isSelected: selectedIndex == 0)
                         .onTapGesture {
                             selectedIndex = 0
                         }
                     
-                    TabBarItem(iconName: "flame.fill", title: "AI effects", isSelected: selectedIndex == 1)
+                    TabBarItem(iconName: "photo.tv", title: "AI Photo", isSelected: selectedIndex == 1)
                         .onTapGesture {
                             selectedIndex = 1
                         }
                     
-                    TabBarItem(iconName: "rectangle.stack.badge.play.fill", title: "Creations", isSelected: selectedIndex == 2)
+                    TabBarItem(iconName: "doc.on.doc.fill", title: "History", isSelected: selectedIndex == 2)
                         .onTapGesture {
                             selectedIndex = 2
                         }
@@ -66,7 +66,7 @@ struct CustomTabView: View {
             
         }
         .onChange(of: subscriptionManager.isSubscriptionStatusChecked) { checked in
-            if checked && !subscriptionManager.isSubscribed {
+            if checked && !subscriptionManager.isSubscribed && !showRateUsSheet {
                 isPresented = true
             }
         }

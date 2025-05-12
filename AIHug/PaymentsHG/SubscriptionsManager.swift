@@ -6,14 +6,17 @@ import ApphudSDK
 class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()
     @Published var productsApphud: [ApphudProduct] = []
+    @Published var avatarsApphud: [ApphudProduct] = []
     @Published var isSubscribed: Bool = false
     @Published var isSubscriptionStatusChecked = false
     
     private let paywallID = "main"
+    private let avatarPaywallID = "avatar_trial"
     let buyPublisher = PassthroughSubject<Bool, Never>()
     
     private init() {
         loadProducts()
+        loadAvatars()
         checkSubscriptionStatus()
     }
     
@@ -26,6 +29,19 @@ class SubscriptionManager: ObservableObject {
                 self.productsApphud = products
             } else {
                 print("❌ Paywall with id \(self.paywallID) not found")
+            }
+        }
+    }
+    
+    private func loadAvatars() {
+        Apphud.paywallsDidLoadCallback { paywalls, error in
+            if let paywall = paywalls.first(where: { $0.identifier == self.avatarPaywallID }) {
+                Apphud.paywallShown(paywall)
+                let products = paywall.products
+                print("✅ Paywall ID: \(self.avatarPaywallID), Products: \(products.map { $0.productId })")
+                self.avatarsApphud = products
+            } else {
+                print("❌ Paywall with id \(self.avatarPaywallID) not found")
             }
         }
     }
@@ -134,4 +150,18 @@ class SubscriptionManager: ObservableObject {
         print("✅ Price is \(productId): \(priceString)")
         return priceString
     }
+    
+    func getAvatarPrice(for productId: String) -> String {
+        guard let product = avatarsApphud.first(where: { $0.skProduct?.productIdentifier == productId }) else {
+            return "Loading..."
+        }
+        guard let skProduct = product.skProduct else {
+            return "N/A"
+        }
+        let price = skProduct.price
+        let priceString = "\(skProduct.priceLocale.currencySymbol ?? "$")\(price)"
+        print("✅ Price is \(productId): \(priceString)")
+        return priceString
+    }
+
 }

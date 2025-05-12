@@ -5,16 +5,18 @@ import ApphudSDK
 
 struct SettingsView: View {
     
-    @Environment(\.presentationMode) var presentationMode
-    @State private var isNotificationEnabled: Bool = false
-    @State private var isPresented = false
-    @State private var scrollOffset: CGFloat = 0
-    @State private var cacheSize = VideoCacheManager.shared.formattedCacheSize()
-    
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     
+    @Environment(\.presentationMode) var presentationMode
+    
+    @State private var isNotificationEnabled: Bool = false
+    @State private var isPresented = false
+    @State private var avatarPaywallIsPresented = false
+    @State private var scrollOffset: CGFloat = 0
+    @State private var cacheSize = VideoCacheManager.shared.formattedCacheSize()
     @State private var showAlert = false
     @State private var alertType: AlertType?
+    @State private var selectedSegment: Int = UserDefaults.standard.integer(forKey: "selectedGender")
     
     enum AlertType {
         case clearCache
@@ -28,136 +30,219 @@ struct SettingsView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    
-                    if #available(iOS 16.0, *) {
-                        List {
-                            Section(header:
-                                        Text("Support us")
-                                .font(.headline)
-                                .foregroundColor(.labelSecondary)
-                            ) {
-                                
-                                SettingsRowView(iconName: "star", title: "Rate app", value: "", action: {showRateAlert()})
-                                
-                                SettingsRowView(iconName: "square.and.arrow.up", title: "Share with friends", value: "", action: {shareApp()})
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 10) {
+                            
+                            //MARK: - Gender selection
+                            
+                            HStack {
+                                Text("Gender")
+                                    .font(.title3Emphasized)
+                                    .foregroundColor(.labelPrimary)
+
+                                Spacer()
                             }
                             
-                            Section(header:
-                                        Text("Purchases & Actions")
-                                .font(.headline)
-                                .foregroundColor(.labelSecondary)
-                            ) {
+                            HStack {
                                 
-                                if !subscriptionManager.isSubscribed {
-                                    SettingsRowView(iconName: "sparkles", title: "Upgrade plan", value: "", action: {isPresented = true})
-                                }
-                                HStack {
-                                    Image(systemName: "bell.badge")
-                                        .frame(width: 36, alignment: .center)
-                                        .foregroundColor(.accentPrimary)
+                                Button {
+                                    selectedSegment = 0
+                                    UserDefaults.standard.set(0, forKey: "selectedGender")
+                                } label: {
                                     
-                                    Text("Notifications")
+                                    HStack{
+
+                                        Image("wAvatar")
+                                            .resizable()
+                                            .frame(width: 32, height: 32)
+                                        
+                                        Text("Women")
+                                            .foregroundColor(.labelPrimary)
+                                            .font(.headline)
+
+                                    }
+                                    .frame(height: 64)
+                                    .frame(maxWidth: .infinity)
+                                    .background(selectedSegment == 0 ? Color.accentPrimary : Color.backgroundSecondary)
+                                    .cornerRadius(16)
+                                }
+                                
+                                Button {
+                                    selectedSegment = 1
+                                    UserDefaults.standard.set(1, forKey: "selectedGender")
+                                } label: {
+                                    
+                                    HStack{
+
+                                        Image("mAvatar")
+                                            .resizable()
+                                            .frame(width: 32, height: 32)
+                                        
+                                        Text("Men")
+                                            .foregroundColor(.labelPrimary)
+                                            .font(.headline)
+
+                                    }
+                                    .frame(height: 64)
+                                    .frame(maxWidth: .infinity)
+                                    .background(selectedSegment == 1 ? Color.accentPrimary : Color.backgroundSecondary)
+                                    .cornerRadius(16)
+                                }
+                            }
+                            
+                            
+                            //MARK: - Avatar section
+                            
+                            VStack {
+                                HStack {
+                                    Text("My Avatars")
                                         .foregroundColor(Color.labelPrimary)
+                                        .font(.title3Emphasized)
+                                    
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                .padding(.top)
+                                .padding(.bottom, 4)
+                                
+                                HStack {
+                                    Image(systemName: "face.smiling")
+                                        .font(.bodyRegular)
+                                        .foregroundColor(.accentSecondary)
+                                    
+                                    Text("Created by:")
+                                        .font(.bodyRegular)
+                                        .foregroundColor(.labelPrimary)
                                     
                                     Spacer()
                                     
-                                    Toggle("", isOn: $isNotificationEnabled)
-                                        .tint(.accentPrimary)
+                                    Text("0")
+                                        .font(.calloutRegular)
+                                        .foregroundColor(.labelTertiary)
+                                    
+                                    Text("/")
+                                        .font(.bodyEmphasized)
+                                        .foregroundColor(.labelPrimary)
+                                    
+                                    Text("-")
+                                        .font(.bodyEmphasized)
+                                        .foregroundColor(.labelPrimary)
+                                    
                                 }
-                                .listRowBackground(Color.backgroundTertiary)
+                                .padding()
+                                .background(Color.backgroundTertiary)
+                                .cornerRadius(12)
+                                .padding(.horizontal)
                                 
-                                SettingsRowView(iconName: "trash", title: "Clear cache", value: cacheSize, action: {
-                                    alertType = .clearCache
-                                    showAlert = true
-                                })
-                                if !subscriptionManager.isSubscribed{
-                                    SettingsRowView(iconName: "arrow.clockwise.icloud", title: "Restore purchases", value: "", action: {restorePurchases()})
+                                HStack(spacing: 10) {
+                                    
+                                    NavigationLink(destination: AvatarView()) {
+                                        Text("Create avatar")
+                                            .foregroundColor(.accentPrimary)
+                                            .font(.bodyEmphasized)
+                                            .frame(height: 48)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color.accentPrimaryAlpha)
+                                            .cornerRadius(12)
+                                    }
+                                    
+  
+                                    Button {
+                                        avatarPaywallIsPresented = true
+                                    } label: {
+                                        Text("Buy avatar")
+                                            .foregroundColor(.labelPrimary)
+                                            .font(.bodyEmphasized)
+                                            .frame(height: 48)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color.accentPrimary)
+                                            .cornerRadius(12)
+                                    }
                                 }
+                                .padding(.horizontal)
+                                .padding(.bottom)
+
                             }
+                            .background(Color.backgroundTertiary)
+                            .cornerRadius(12)
+                        
                             
-                            Section(header:
-                                        Text("Info & legal")
-                                .font(.headline)
-                                .foregroundColor(.labelSecondary)
-                            ) {
-                                
-                                SettingsRowView(iconName: "text.bubble", title: "Contact us", value: "", action: {sendEmail()})
-                                
-                                SettingsRowView(iconName: "folder.badge.person.crop", title: "Privacy Policy", value: "", action: {openURL("https://docs.google.com/document/d/17pLhC6Wj7PeDZLwdCTLwgljnmfFBf55YWzqbRRa2DCA/edit?usp=sharing")})
-                                
-                                SettingsRowView(iconName: "doc.text", title: "Usage Policy", value: "", action: {openURL("https://docs.google.com/document/d/12FPPVshMhVRK9L2wyfeU1eAUNqTA6A8K8smulJGIZy4/edit?usp=sharing")})
-                            }
+                            //MARK: - Suppot us section
                             
-                            HStack() {
-                                Spacer()
-                                Text("App Version: 1.2.4")
-                                    .font(.footnoteRegular)
-                                    .foregroundColor(Color.labelTertiary)
+                            HStack {
+                                Text("Support us")
+                                    .font(.headline)
+                                    .foregroundColor(.labelSecondary)
+
                                 Spacer()
                             }
-                            .padding(.bottom, 100)
-                            .listRowBackground(Color.backgroundPrimary)
+                            .padding(.top)
+                            
+                            SettingsRowView(iconName: "star", title: "Rate app", value: "", action: { showRateAlert() })
+                            SettingsRowView(iconName: "square.and.arrow.up", title: "Share with friends", value: "", action: { shareApp() })
                             
                             
-                        }
-                        .listStyle(InsetGroupedListStyle())
-                        .background(Color.backgroundPrimary)
-                        .scrollContentBackground(.hidden)
-                        .scrollIndicators(.hidden)
-                    } else {
-                        List {
+                            //MARK: - Purchases & Actions section
                             
-                            Section(header:
-                                        Text("Support us")
-                                .font(.headline)
-                                .foregroundColor(.labelSecondary)
-                            ) {
+                            HStack {
+                                Text("Purchases & Actions")
+                                        .font(.headline)
+                                        .foregroundColor(.labelSecondary)
                                 
-                                SettingsRowView(iconName: "star", title: "Rate app", value: "", action: {showRateAlert()})
-                                
-                                SettingsRowView(iconName: "square.and.arrow.up", title: "Share with friends", value: "", action: {shareApp()})
+                                Spacer()
                             }
+                            .padding(.top)
                             
-                            Section(header:
-                                        Text("Purchases & Actions")
-                                .font(.headline)
-                                .foregroundColor(.labelSecondary)
-                            ) {
+                            if !subscriptionManager.isSubscribed {
                                 SettingsRowView(iconName: "sparkles", title: "Upgrade plan", value: "", action: {isPresented = true})
-                                
-                                HStack {
-                                    Image(systemName: "bell.badge")
-                                        .frame(width: 36, alignment: .center)
-                                        .foregroundColor(.accentPrimary)
-                                    
-                                    Text("Notifications")
-                                        .foregroundColor(Color.labelPrimary)
-                                    
-                                    Spacer()
-                                    
-                                    Toggle("", isOn: $isNotificationEnabled)
-                                }
-                                .listRowBackground(Color.backgroundTertiary)
-                                
-                                SettingsRowView(iconName: "trash", title: "Clear cache", value: cacheSize, action: {
-                                    alertType = .clearCache
-                                    showAlert = true
-                                })
-                                
-                                SettingsRowView(iconName: "arrow.clockwise.icloud", title: "Restore purchases", value: "", action: {restorePurchases()})                            }
-                            
-                            Section(header:
-                                        Text("Info & legal")
-                                .font(.headline)
-                                .foregroundColor(.labelSecondary)
-                            ) {
-                                
-                                SettingsRowView(iconName: "text.bubble", title: "Contact us", value: "", action: {sendEmail()})
-                                
-                                SettingsRowView(iconName: "folder.badge.person.crop", title: "Privacy Policy", value: "", action: {openURL("https://docs.google.com/document/d/17pLhC6Wj7PeDZLwdCTLwgljnmfFBf55YWzqbRRa2DCA/edit?usp=sharing")})
-                                
-                                SettingsRowView(iconName: "doc.text", title: "Usage Policy", value: "", action: {openURL("https://docs.google.com/document/d/12FPPVshMhVRK9L2wyfeU1eAUNqTA6A8K8smulJGIZy4/edit?usp=sharing")})
                             }
+                            HStack {
+                                Image(systemName: "bell.badge")
+                                    .frame(width: 36, alignment: .center)
+                                    .foregroundColor(.accentPrimary)
+                                    .padding(.leading, 10)
+                                
+                                Text("Notifications")
+                                    .foregroundColor(Color.labelPrimary)
+                                
+                                Spacer()
+                                
+                                Toggle("", isOn: $isNotificationEnabled)
+                                    .padding(.trailing)
+                            }
+                            .frame(height: 44)
+                            .background(Color.backgroundTertiary)
+                            .cornerRadius(10)
+                            SettingsRowView(iconName: "trash", title: "Clear cache", value: cacheSize, action: {
+                                alertType = .clearCache
+                                showAlert = true
+                            })
+                            if !subscriptionManager.isSubscribed{
+                                SettingsRowView(iconName: "arrow.clockwise.icloud", title: "Restore purchases", value: "", action: {restorePurchases()})
+                            }
+                            
+                            
+                            //MARK: - Info & legal section
+                            
+                            HStack {
+                                Text("Info & legal")
+                                    .font(.headline)
+                                    .foregroundColor(.labelSecondary)
+
+                                Spacer()
+                            }
+                            .padding(.top)
+                            
+                            SettingsRowView(iconName: "text.bubble", title: "Contact us", value: "", action: { sendEmail() })
+                            SettingsRowView(iconName: "folder.badge.person.crop", title: "Privacy Policy", value: "", action: {
+                                openURL("https://docs.google.com/document/d/17pLhC6Wj7PeDZLwdCTLwgljnmfFBf55YWzqbRRa2DCA/edit?usp=sharing")
+                            })
+                            SettingsRowView(iconName: "doc.text", title: "Usage Policy", value: "", action: {
+                                openURL("https://docs.google.com/document/d/12FPPVshMhVRK9L2wyfeU1eAUNqTA6A8K8smulJGIZy4/edit?usp=sharing")
+                            })
+                            
+                            
+                            //MARK: - Version section
                             
                             HStack() {
                                 Spacer()
@@ -167,15 +252,13 @@ struct SettingsView: View {
                                 Spacer()
                             }
                             .padding(.bottom, 100)
-                            .listRowBackground(Color.backgroundPrimary)
+                            .padding(.top, 20)
+                            
                             
                         }
-                        .listStyle(InsetGroupedListStyle())
+                        .padding()
                     }
-                    
-                    Spacer()
-                    
-                    
+                                       
                 }
                 .navigationBarBackButtonHidden(true)
                 .navigationTitle(
@@ -207,13 +290,16 @@ struct SettingsView: View {
                                         ))
                                     .cornerRadius(8)
                                 })
-                                .sheet(isPresented: $isPresented) {
+                                .fullScreenCover(isPresented: $isPresented) {
                                     PayWall()
                                 }
                             }
                         }
                     
                 )
+                .fullScreenCover(isPresented: $avatarPaywallIsPresented) {
+                    AvatarPayWall()
+                }
                 .alert(isPresented: $showAlert) {
                     switch alertType {
                     case .clearCache:
@@ -297,6 +383,7 @@ struct SettingsRowView: View {
                 Image(systemName: iconName)
                     .frame(width: 36, alignment: .center)
                     .foregroundColor(.accentPrimary)
+                    .padding(.leading, 10)
                 
                 Text(title)
                     .foregroundColor(Color.labelPrimary)
@@ -310,8 +397,11 @@ struct SettingsRowView: View {
                 
                 Image(systemName: "chevron.right")
                     .foregroundColor(Color.accentPrimary)
+                    .padding(.trailing)
             }
         }
-        .listRowBackground(Color.backgroundTertiary)
+        .frame(height: 44)
+        .background(Color.backgroundTertiary)
+        .cornerRadius(10)
     }
 }

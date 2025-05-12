@@ -6,8 +6,11 @@ import AdSupport
 @main
 struct AIHugApp: App {
     
-    @State private var isFirstLaunch: Bool = UserDefaults.standard.bool(forKey: "isFirstLaunch") == false
+    @State private var onboardingCompleted = UserDefaults.standard.bool(forKey: "onboardingCompleted")
+    @State private var genderSelected = UserDefaults.standard.bool(forKey: "genderSelected")
+
     @State private var showTabView = false
+    @State private var showGenderView = false
     @StateObject private var dataController = DataController()
     
     init() {
@@ -18,18 +21,25 @@ struct AIHugApp: App {
     }
     
     var body: some Scene {
+        
         WindowGroup {
-            if isFirstLaunch && !showTabView {
-                OnboardingView(showTabView: $showTabView)
-                    .onDisappear {
-                        UserDefaults.standard.set(true, forKey: "isFirstLaunch")
-                    }
+            if !onboardingCompleted {
+                OnboardingView(onFinish: {
+                    UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+                    onboardingCompleted = true
+                })
+            } else if !genderSelected {
+                GenderSelectionView(onFinish: {
+                    UserDefaults.standard.set(true, forKey: "genderSelected")
+                    genderSelected = true
+                })
             } else {
                 CustomTabView()
                     .environment(\.managedObjectContext, dataController.container.viewContext)
                     .environmentObject(SubscriptionManager.shared)
             }
         }
+
     }
     
     func fetchIDFA() {
