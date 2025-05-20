@@ -6,6 +6,7 @@ import ApphudSDK
 struct SettingsView: View {
     
     @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
     
     @Environment(\.presentationMode) var presentationMode
     
@@ -17,6 +18,8 @@ struct SettingsView: View {
     @State private var showAlert = false
     @State private var alertType: AlertType?
     @State private var selectedSegment: Int = UserDefaults.standard.integer(forKey: "selectedGender")
+    
+    @Binding var selectedTabIndex: Int
     
     enum AlertType {
         case clearCache
@@ -39,7 +42,7 @@ struct SettingsView: View {
                                 Text("Gender")
                                     .font(.title3Emphasized)
                                     .foregroundColor(.labelPrimary)
-
+                                
                                 Spacer()
                             }
                             
@@ -51,7 +54,7 @@ struct SettingsView: View {
                                 } label: {
                                     
                                     HStack{
-
+                                        
                                         Image("wAvatar")
                                             .resizable()
                                             .frame(width: 32, height: 32)
@@ -59,7 +62,7 @@ struct SettingsView: View {
                                         Text("Women")
                                             .foregroundColor(.labelPrimary)
                                             .font(.headline)
-
+                                        
                                     }
                                     .frame(height: 64)
                                     .frame(maxWidth: .infinity)
@@ -73,7 +76,7 @@ struct SettingsView: View {
                                 } label: {
                                     
                                     HStack{
-
+                                        
                                         Image("mAvatar")
                                             .resizable()
                                             .frame(width: 32, height: 32)
@@ -81,7 +84,7 @@ struct SettingsView: View {
                                         Text("Men")
                                             .foregroundColor(.labelPrimary)
                                             .font(.headline)
-
+                                        
                                     }
                                     .frame(height: 64)
                                     .frame(maxWidth: .infinity)
@@ -116,7 +119,7 @@ struct SettingsView: View {
                                     
                                     Spacer()
                                     
-                                    Text("0")
+                                    Text(sessionViewModel.userData != nil ? "\(sessionViewModel.userData!.stat.availableModels)" : "-")
                                         .font(.calloutRegular)
                                         .foregroundColor(.labelTertiary)
                                     
@@ -124,7 +127,7 @@ struct SettingsView: View {
                                         .font(.bodyEmphasized)
                                         .foregroundColor(.labelPrimary)
                                     
-                                    Text("-")
+                                    Text(sessionViewModel.userData != nil ? "\(sessionViewModel.userData!.stat.maxModels)" : "-")
                                         .font(.bodyEmphasized)
                                         .foregroundColor(.labelPrimary)
                                     
@@ -146,7 +149,7 @@ struct SettingsView: View {
                                             .cornerRadius(12)
                                     }
                                     
-  
+                                    
                                     Button {
                                         avatarPaywallIsPresented = true
                                     } label: {
@@ -161,11 +164,11 @@ struct SettingsView: View {
                                 }
                                 .padding(.horizontal)
                                 .padding(.bottom)
-
+                                
                             }
                             .background(Color.backgroundTertiary)
                             .cornerRadius(12)
-                        
+                            
                             
                             //MARK: - Suppot us section
                             
@@ -173,7 +176,7 @@ struct SettingsView: View {
                                 Text("Support us")
                                     .font(.headline)
                                     .foregroundColor(.labelSecondary)
-
+                                
                                 Spacer()
                             }
                             .padding(.top)
@@ -186,8 +189,8 @@ struct SettingsView: View {
                             
                             HStack {
                                 Text("Purchases & Actions")
-                                        .font(.headline)
-                                        .foregroundColor(.labelSecondary)
+                                    .font(.headline)
+                                    .foregroundColor(.labelSecondary)
                                 
                                 Spacer()
                             }
@@ -228,7 +231,7 @@ struct SettingsView: View {
                                 Text("Info & legal")
                                     .font(.headline)
                                     .foregroundColor(.labelSecondary)
-
+                                
                                 Spacer()
                             }
                             .padding(.top)
@@ -246,7 +249,7 @@ struct SettingsView: View {
                             
                             HStack() {
                                 Spacer()
-                                Text("App Version: 1.2.5")
+                                Text("App Version: 1.2.6")
                                     .font(.footnoteRegular)
                                     .foregroundColor(Color.labelTertiary)
                                 Spacer()
@@ -258,7 +261,7 @@ struct SettingsView: View {
                         }
                         .padding()
                     }
-                                       
+                    
                 }
                 .navigationBarBackButtonHidden(true)
                 .navigationTitle(
@@ -331,7 +334,7 @@ struct SettingsView: View {
     }
     
     private func openAppStore() {
-        if let url = URL(string: "https://apps.apple.com/us/app/id\(6742832953)?action=write-review") {
+        if let url = URL(string: "https://apps.apple.com/app/id6742832953?action=write-review") {
             UIApplication.shared.open(url)
         }
     }

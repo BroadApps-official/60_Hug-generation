@@ -50,6 +50,9 @@
             ReferencedContainer = "container:AIHug.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../../AIHug/PaymentsHG/PinterestDownloaderPricing.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

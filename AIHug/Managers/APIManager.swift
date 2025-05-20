@@ -14,7 +14,7 @@ class NetworkManager {
     private let bearerTokenFotobudka = "f113066f-2ad6-43eb-b860-8683fde1042a"
     private let appIdHailuo = "com.test.test"
     private let bundleID = "com.elv.hugg3n3r4t10n"
-    private let userID = /*"F452345B-BEEC-43EA-AF96-000000000"*/ UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"
+    private let userID = "F452345B-BEEC-43EA-AF96-000000000" /*UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"*/
     private let isNew: Bool = true
     private var appName: String = "com.elv.hugg3n3r4t10n"
     private var ai: [String] = ["pika", "pv"]
@@ -134,7 +134,7 @@ class NetworkManager {
         let url = "https://nextgenwebapps.shop/api/v1/effects/list"
         
         let parameters: [String: Any] = [
-            "userId": userID, /*"9C94DCE3-8B91-499F-8EE2-9E5034E8989A"*/
+            "userId": userID,
             "lang" : "en",
             "source": bundleID,
             "reels" : "1",
@@ -149,16 +149,43 @@ class NetworkManager {
             .responseJSON { response in
                 switch response.result {
                 case .success(let data):
-                    print("✅ Filters response: \(data)")
+                    print("✅ Effects response: \(data)")
                     completion(.success(data))
                 case .failure(let error):
                     completion(.failure(error))
                 }
             }
     }
-
-
     
+    func fetchStylesFotobudka(completion: @escaping (Result<Data, Error>) -> Void) {
+        
+        let url = "https://nextgenwebapps.shop/api/v1/photo/styles"
+        
+        let parameters: [String: Any] = [
+            "userId": userID,
+            "lang" : "en",
+            "gender": UserDefaults.standard.integer(forKey: "selectedGender") == 0 ? "f" : "m",
+            "tag" : "060",
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(bearerTokenFotobudka)"
+        ]
+
+        AF.request(url, method: .get, parameters: parameters, headers: headers)
+            .validate()
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    print("✅ Styles raw data received")
+                    completion(.success(data))
+                case .failure(let error):
+                    print("❌ Request failed: \(error.localizedDescription)")
+                    completion(.failure(error))
+                }
+            }
+    }
+
     func generateImage(templateId: Int?, imageURL: URL?, completion: @escaping (Result<String, Error>) -> Void) {
         let generateURL = "https://vewapnew.online/api/generate"
         
@@ -300,7 +327,7 @@ class NetworkManager {
         }
     }
     
-    func sendPostRequest(scenarioID: String, image: UIImage) {
+    func sendPostRequest(scenarioID: String, image: UIImage, completion: @escaping (Result<String, Error>) -> Void) {
         let url = "https://nextgenwebapps.shop/api/v1/scenarios/generate"
 
         let parameters: [String: String] = [
@@ -342,15 +369,20 @@ class NetworkManager {
             multipartFormData.append(data, withName: "photo", fileName: "photo.\(mime == "image/png" ? "png" : "jpg")", mimeType: mime)
         }, to: url, method: .post, headers: headers)
         .responseJSON { response in
-            switch response.result {
-            case .success(let value):
-                print("✅ Успешный ответ:")
-                print(value)
-            case .failure(let error):
-                print("❌ Ошибка запроса:")
-                print(error)
+                switch response.result {
+                case .success(let value):
+                    if let json = value as? [String: Any],
+                       let dataDict = json["data"] as? [String: Any],
+                       let jobId = dataDict["jobId"] as? String {
+                        completion(.success(jobId))
+                    } else {
+                        completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Неверный формат ответа: не найден jobId"])))
+                    }
+
+                case .failure(let error):
+                    completion(.failure(error))
+                }
             }
-        }
     }
     
     
@@ -484,34 +516,32 @@ class NetworkManager {
     
     
     
-    func loginUser() {
-        
+    func loginUser(completion: @escaping (Result<LoginUserData, Error>) -> Void) {
         let url = "https://nextgenwebapps.shop/api/v1/user/login"
-        
+
         let parameters: [String: String] = [
             "userId": userID,
             "gender": UserDefaults.standard.integer(forKey: "selectedGender") == 0 ? "f" : "m",
             "source": bundleID
         ]
-        
+
         let headers: HTTPHeaders = [
             "Authorization": "Bearer \(bearerTokenFotobudka)"
         ]
-        
+
         AF.request(url, method: .post, parameters: parameters, encoding: URLEncoding.default, headers: headers)
             .validate()
-            .responseString { response in
+            .responseDecodable(of: LoginResponse.self) { response in
                 switch response.result {
-                case .success(let responseString):
-                    print("✅ Success response: \(responseString)")
+                case .success(let loginResponse):
+                    //print("✅ Success response: \(loginResponse.data)")
+                    completion(.success(loginResponse.data))
                 case .failure(let error):
-                    print("❌ Request failed: \(error.localizedDescription)")
-                    if let data = response.data, let errorString = String(data: data, encoding: .utf8) {
-                        print("❗ Server error response: \(errorString)")
-                    }
+                    completion(.failure(error))
                 }
             }
     }
+
     
     
     func setPaidPlan() {

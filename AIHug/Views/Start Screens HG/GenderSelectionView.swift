@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GenderSelectionView: View {
     
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
     @State private var selectedSegment: Int?
     var onFinish: () -> Void
     
@@ -82,7 +83,7 @@ struct GenderSelectionView: View {
                 
                 Button {
                     UserDefaults.standard.set(selectedSegment, forKey: "selectedGender")
-                    NetworkManager.shared.loginUser()
+                    sessionViewModel.refreshUserData()
                     onFinish()
                 } label: {
                     HStack {

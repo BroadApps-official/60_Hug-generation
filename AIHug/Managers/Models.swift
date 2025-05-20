@@ -236,6 +236,68 @@ class EffectsViewModel: ObservableObject {
 }
 
 
+struct StylesResponse: Decodable {
+    let error: Bool
+    let message: String?
+    let data: [StyleGroup]
+}
+
+struct StyleGroup: Decodable, Identifiable {
+    let id: Int
+    let title: String
+    let preview: String?
+    let isNew: Bool
+    let isCouple: Bool
+    let isGirlfriends: Bool
+    let groupPreview: [String: [String]]
+    let previewByGender: [String: [String: [String]]]
+    let totalTemplates: Int
+    let totalUsed: Int
+    let templates: [StyleTemplate]
+    let subCategories: [String]
+}
+
+struct StyleTemplate: Decodable, Identifiable {
+    let id: Int
+    let title: String?
+    let preview: String
+    let previewProduction: String
+    let gender: String?
+    let prompt: String?
+    let isEnabled: Bool
+}
+
+extension StyleTemplate: PreviewPlayable {
+    var previewURL: String { previewProduction }
+    var displayTitle: String { title ?? "" }
+    var idMain: Int { id }
+}
+
+class StylesViewModel: ObservableObject {
+    @Published var styles: [StyleGroup] = []
+    
+    func fetchStylesFotobudka() {
+        print("⏳ fetchStylesFotobudka вызван")
+        
+        NetworkManager.shared.fetchStylesFotobudka { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let data):
+                    do {
+                        let decoded = try JSONDecoder().decode(StylesResponse.self, from: data)
+                        self.styles = decoded.data
+                        print("✅ decoded style groups: \(decoded.data.count) штук")
+                    } catch {
+                        print("❌ Ошибка декодирования: \(error.localizedDescription)")
+                    }
+                case .failure(let error):
+                    print("❌ Ошибка загрузки стилей: \(error)")
+                }
+            }
+        }
+    }
+}
+
 
 
 
@@ -289,3 +351,88 @@ enum NetworkError: Error {
     case serverError(message: String)
     case inProgress
 }
+
+
+struct LoginResponse: Decodable {
+    let error: Bool
+    let message: String?
+    let data: LoginUserData
+}
+
+struct LoginUserData: Decodable {
+    let id: Int
+    let userId: String
+    let gender: String
+    let source: String
+    let isNewRegistered: Bool
+    let stat: UserStat
+    let avatars: [Avatar]
+}
+
+struct Avatar: Decodable, Identifiable {
+    let id: Int
+    let title: String?
+    let preview: String?
+    let gender: String
+    let isActive: Bool
+}
+
+struct UserStat: Decodable {
+    let id: Int
+    let name: String?
+    let login: String?
+    let gender: String
+    let isGodModeEnabled: Bool
+    let startAt: String?
+    let maxPhotos: Int
+    let maxStyles: Int
+    let maxModels: Int
+    let isActiveTariff: Bool
+    let tariffId: Int?
+    let maxUploadPhotos: Int
+    let minUploadPhotos: Int
+    let totalGenerations: Int
+    let totalGenerationsTemplate: Int
+    let totalGenerationsGod: Int
+    let totalModels: Int
+    let availableModels: Int
+    let availableGenerations: Int
+    let totalTrialGenerations: Int
+    let createdAt: String
+}
+
+
+@MainActor
+class UserSessionViewModel: ObservableObject {
+    @Published var userData: LoginUserData?
+
+    private var hasLoadedOnce = false
+
+    func loadUserDataIfNeeded() {
+        guard !hasLoadedOnce else { return }
+
+        hasLoadedOnce = true
+        print("⏳ Загружаем userData один раз")
+        loginUser()
+    }
+
+    func refreshUserData() {
+        print("🔄 Обновляем userData вручную")
+        loginUser()
+    }
+
+    private func loginUser() {
+        NetworkManager.shared.loginUser { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let data):
+                    self?.userData = data
+                    print("✅ userData получен: \(data)")
+                case .failure(let error):
+                    print("❌ Ошибка получения userData: \(error)")
+                }
+            }
+        }
+    }
+}
+

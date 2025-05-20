@@ -10,13 +10,14 @@ struct HistoryView: View {
     @State private var selectedSegment = 0
     @State private var navigateToTextGeneratedView = false
     
+    @Binding var selectedTabIndex: Int
+    
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     
     var videoItems: [TextGenerations] {
         textGenerationItems.filter { $0.type == "video" }
     }
 
-    // Фото (все, что не видео)
     var photoItems: [TextGenerations] {
         textGenerationItems.filter { $0.type != "video" }
     }
@@ -135,7 +136,11 @@ struct HistoryView: View {
                                         .foregroundColor(.labelSecondary)
                                     
                                     Button {
-                                        
+                                        if selectedSegment == 0 {
+                                            selectedTabIndex = 0
+                                        } else {
+                                            selectedTabIndex = 1
+                                        }
                                     } label: {
                                         Text("Create")
                                             .foregroundColor(.labelPrimary)

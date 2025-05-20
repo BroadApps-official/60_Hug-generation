@@ -26,6 +26,9 @@ struct TextGeneratedView: View {
     @State private var shareURL: URL?
     @State private var isPreparingExport = false
     
+    @State private var uiImage: UIImage?
+    @State private var isLoadingImage = true
+    
     
     enum AlertType {
         case successDownloading
@@ -94,34 +97,34 @@ struct TextGeneratedView: View {
                                 }
                         } else {
                             if let urlString = item?.url, let url = URL(string: urlString) {
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                            .frame(width: 76, height: 76)
-                                            .background(BlurView(style: .systemUltraThinMaterial))
-                                            .cornerRadius(38)
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .clipped()
-                                            .cornerRadius(12)
-                                    case .failure:
-                                        Image(systemName: "xmark.octagon")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 40, height: 40)
-                                            .foregroundColor(.red)
-                                    @unknown default:
-                                        EmptyView()
+                                    ZStack {
+                                        if let image = uiImage {
+                                            Image(uiImage: image)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                .clipped()
+                                                .cornerRadius(12)
+                                        } else if isLoadingImage {
+                                            ProgressView()
+                                                .frame(width: 76, height: 76)
+                                                .background(BlurView(style: .systemUltraThinMaterial))
+                                                .cornerRadius(38)
+                                        } else {
+                                            Image(systemName: "xmark.octagon")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 40, height: 40)
+                                                .foregroundColor(.red)
+                                        }
+                                    }
+                                    .frame(height: 490)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .padding()
+                                    .onAppear {
+                                        loadAndCropImage(from: url)
                                     }
                                 }
-                                .frame(height: 490)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .padding()
-                            }
 
                         }
                         
@@ -596,6 +599,44 @@ struct TextGeneratedView: View {
             }
         }
     }
+    
+    
+    func loadAndCropImage(from url: URL) {
+        isLoadingImage = true
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                isLoadingImage = false
+                guard let data = data,
+                      let image = UIImage(data: data) else {
+                    print("❌ Ошибка загрузки изображения")
+                    return
+                }
+                let cropped = cropToAspectRatio(image: image, ratio: 3/5)
+                self.uiImage = cropped
+            }
+        }.resume()
+    }
+    
+    private func cropToAspectRatio(image: UIImage, ratio: CGFloat) -> UIImage {
+        let originalWidth = image.size.width
+        let originalHeight = image.size.height
+        let originalRatio = originalWidth / originalHeight
+
+        var cropRect: CGRect
+        if originalRatio > ratio {
+            let newWidth = originalHeight * ratio
+            let xOffset = (originalWidth - newWidth) / 2
+            cropRect = CGRect(x: xOffset, y: 0, width: newWidth, height: originalHeight)
+        } else {
+            let newHeight = originalWidth / ratio
+            let yOffset = (originalHeight - newHeight) / 2
+            cropRect = CGRect(x: 0, y: yOffset, width: originalWidth, height: newHeight)
+        }
+
+        guard let cgImage = image.cgImage?.cropping(to: cropRect) else { return image }
+        return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+    }
+
     
     private func deleteItem() {
         moc.delete(item!)

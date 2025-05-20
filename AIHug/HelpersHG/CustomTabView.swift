@@ -1,68 +1,103 @@
 import SwiftUI
 
+class TabBarVisibilityManager: ObservableObject {
+    @Published var isTabBarHidden: Bool = false
+}
+
+extension View {
+    func withTabBarHidden(_ hidden: Bool) -> some View {
+        modifier(TabBarHiddenModifier(hidden: hidden))
+    }
+}
+
+struct TabBarHiddenModifier: ViewModifier {
+    @EnvironmentObject var tabBarVisibility: TabBarVisibilityManager
+    let hidden: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { tabBarVisibility.isTabBarHidden = hidden }
+            .onDisappear {
+                if hidden {
+                    tabBarVisibility.isTabBarHidden = false
+                }
+            }
+    }
+}
+
+
 struct CustomTabView: View {
     
-    @State private var selectedIndex = 0
+    @State private var selectedTabIndex = 0
     @State private var showRateUsSheet = false
     @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @StateObject private var tabBarVisibility = TabBarVisibilityManager()
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
     @State private var isPresented = false
     
     var body: some View {
         ZStack {
             
             ZStack {
-                switch selectedIndex {
+                switch selectedTabIndex {
                 case 0:
-                    AIVideoView()
+                    AIVideoView(selectedTabIndex: $selectedTabIndex)
+                        .environmentObject(tabBarVisibility)
                 case 1:
-                    AIPhotoView()
+                    AIPhotoView(selectedTabIndex: $selectedTabIndex)
+                        .environmentObject(tabBarVisibility)
                 case 2:
-                    HistoryView()
+                    HistoryView(selectedTabIndex: $selectedTabIndex)
+                        .environmentObject(tabBarVisibility)
                 case 3:
-                    SettingsView()
+                    SettingsView(selectedTabIndex: $selectedTabIndex)
+                        .environmentObject(tabBarVisibility)
                 default:
                     Text("First tab")
                 }
             }
             
-            VStack {
-                Spacer()
-                
-                HStack(spacing: 0) {
-                    
+            if !tabBarVisibility.isTabBarHidden {
+                VStack {
                     Spacer()
-                        .frame(width: 10)
                     
-                    TabBarItem(iconName: "sparkles", title: "AI Video", isSelected: selectedIndex == 0)
-                        .onTapGesture {
-                            selectedIndex = 0
-                        }
-                    
-                    TabBarItem(iconName: "photo.tv", title: "AI Photo", isSelected: selectedIndex == 1)
-                        .onTapGesture {
-                            selectedIndex = 1
-                        }
-                    
-                    TabBarItem(iconName: "doc.on.doc.fill", title: "History", isSelected: selectedIndex == 2)
-                        .onTapGesture {
-                            selectedIndex = 2
-                        }
-                    
-                    TabBarItem(iconName: "gearshape.fill", title: "Settings", isSelected: selectedIndex == 3)
-                        .onTapGesture {
-                            selectedIndex = 3
-                        }
-                    
-                    Spacer()
-                        .frame(width: 10)
+                    HStack(spacing: 0) {
+                        
+                        Spacer()
+                            .frame(width: 10)
+                        
+                        TabBarItem(iconName: "sparkles", title: "AI Video", isSelected: selectedTabIndex == 0)
+                            .onTapGesture {
+                                selectedTabIndex = 0
+                            }
+                        
+                        TabBarItem(iconName: "photo.tv", title: "AI Photo", isSelected: selectedTabIndex == 1)
+                            .onTapGesture {
+                                selectedTabIndex = 1
+                            }
+                        
+                        TabBarItem(iconName: "doc.on.doc.fill", title: "History", isSelected: selectedTabIndex == 2)
+                            .onTapGesture {
+                                selectedTabIndex = 2
+                            }
+                        
+                        TabBarItem(iconName: "gearshape.fill", title: "Settings", isSelected: selectedTabIndex == 3)
+                            .onTapGesture {
+                                selectedTabIndex = 3
+                            }
+                        
+                        Spacer()
+                            .frame(width: 10)
+                    }
+                    .frame(height: 80)
+                    .background(BlurView(style: .systemUltraThinMaterial))
+                    .cornerRadius(20)
+                    .padding(.horizontal)
+                    .padding(.bottom, 30)
+
                 }
-                .frame(height: 80)
-                .background(BlurView(style: .systemUltraThinMaterial))
-                .cornerRadius(20)
-                .padding(.horizontal)
-                .padding(.bottom, 30)
+                .edgesIgnoringSafeArea(.bottom)
             }
-            .edgesIgnoringSafeArea(.bottom)
             
         }
         .onChange(of: subscriptionManager.isSubscriptionStatusChecked) { checked in
@@ -75,6 +110,7 @@ struct CustomTabView: View {
         }
         .onAppear {
             checkAppLaunchCount()
+            sessionViewModel.loadUserDataIfNeeded()
         }
         .fullScreenCover(isPresented: $showRateUsSheet) {
             CustomRateUsView()

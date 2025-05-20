@@ -58,7 +58,6 @@ struct ImageCardView<T: PreviewPlayable>: View {
     private func setupImage() {
         guard let url = URL(string: item.previewURL) else { return }
         
-        // Загрузка изображения из URL
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil, let loadedImage = UIImage(data: data) else {
                 return

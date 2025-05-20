@@ -9,6 +9,7 @@ struct AIVideoView: View {
     @StateObject private var viewModel = TemplatesViewModel()
     @StateObject private var viewModelHailuo = FiltersViewModel()
     @StateObject private var viewModelFotobudka = ScenariosViewModel()
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
     
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     
@@ -27,6 +28,14 @@ struct AIVideoView: View {
     @State private var isPhotoNeeded: Bool = false
     @FocusState private var isFocused: Bool
     @State private var type: String?
+    @State private var creditsPaywallIsPresented = false
+    
+    @Binding var selectedTabIndex: Int
+    
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
     
     var body: some View {
         
@@ -111,48 +120,16 @@ struct AIVideoView: View {
                             //MARK: - Scenarios tab
                             
                             ScrollView(.vertical, showsIndicators: false) {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    ForEach(viewModelFotobudka.groups) { group in
-                                        VStack(alignment: .leading, spacing: 10) {
-                                            HStack {
-                                                Text(group.title)
-                                                    .font(.title3Emphasized)
-                                                    .foregroundColor(.labelPrimary)
-                                                
-                                                Spacer()
-                                                
-                                                NavigationLink(destination: AllTemplatesView(items: group.scenarios, type: "video")) {
-                                                    HStack(spacing: 5) {
-                                                        Text("See all")
-                                                            .font(.footnoteRegular)
-                                                            .foregroundColor(.labelPrimary)
-                                                        
-                                                        Image(systemName: "chevron.forward")
-                                                            .font(.system(size: 12))
-                                                            .foregroundColor(.labelPrimary)
-                                                    }
-                                                    .padding(8)
-                                                    .background(Color.backgroundPrimary)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 8)
-                                                            .stroke(Color.separatorSecondary, lineWidth: 1)
-                                                    )
-                                                }
+                                ForEach(viewModelFotobudka.groups) { group in
+                                    LazyVGrid(columns: columns, spacing: 20) {
+                                        ForEach(Array(group.scenarios.enumerated()), id: \.element.id) { index, scenario in
+                                            NavigationLink(destination: AddPhotoView(items: group.scenarios, selectedIndex: index, aiModel: "scenario", type: "video")) {
+                                                VideoCardView(item: scenario)
                                             }
-                                            .padding(.horizontal)
-                                            .padding(.top, 10)
-                                            
-                                            HStack(spacing: 10) {
-                                                ForEach(Array(group.scenarios.prefix(2).enumerated()), id: \.element.id) { index, scenario in
-                                                    NavigationLink(destination: AddPhotoView(items: group.scenarios, selectedIndex: index, aiModel: "scenario", type: "video")) {
-                                                        VideoCardView(item: scenario)
-                                                    }
-                                                }
-                                            }
-                                            .padding(.horizontal, 16)
-                                            .frame(height: 250)
                                         }
+                                        
                                     }
+                                    .padding()
                                 }
                                 
                                 Spacer()
@@ -211,14 +188,14 @@ struct AIVideoView: View {
                                             promptText = String(newValue.prefix(300))
                                         }
                                     }
-                                    //.toolbar {
-                                    //    ToolbarItemGroup(placement: .keyboard) {
-                                    //        Spacer()
-                                    //        Button("Done") {
-                                    //            hideKeyboard()
-                                    //        }
-                                    //    }
-                                    //}
+                                    .toolbar {
+                                        ToolbarItemGroup(placement: .keyboard) {
+                                            Spacer()
+                                            Button("Done") {
+                                                hideKeyboard()
+                                            }
+                                        }
+                                    }
                                 
                                 
                                 VStack {
@@ -465,10 +442,10 @@ struct AIVideoView: View {
                                             }
                                             .padding(.horizontal)
                                             .padding(.top, 10)
-     
+                                            
                                             HStack(spacing: 10) {
                                                 ForEach(viewModel.groupedTemplates[category]?.prefix(2) ?? []) { template in
-                                                    NavigationLink(destination: AddPhotoView(items: viewModel.groupedTemplates[category] ?? [], selectedIndex: 0, aiModel: "", type: "video")) {
+                                                    NavigationLink(destination: AddPhotoView(items: viewModel.groupedTemplates[category] ?? [], selectedIndex: 0, aiModel: "pika", type: "video")) {
                                                         VideoCardView(item: template)
                                                     }
                                                     
@@ -504,14 +481,14 @@ struct AIVideoView: View {
                                                     RoundedRectangle(cornerRadius: 8)
                                                         .stroke(Color.separatorSecondary, lineWidth: 1)
                                                 )
-                                            }                                           
+                                            }
                                         }
                                         .padding(.horizontal)
                                         .padding(.top, 10)
                                         
                                         HStack(spacing: 10) {
                                             ForEach(Array(viewModelHailuo.filters.prefix(2).enumerated()), id: \.element.id) { index, filter in
-                                                NavigationLink(destination: AddPhotoView(items: viewModelHailuo.filters, selectedIndex: index, aiModel: "", type: "video")) {
+                                                NavigationLink(destination: AddPhotoView(items: viewModelHailuo.filters, selectedIndex: index, aiModel: "hailuo", type: "video")) {
                                                     VideoCardView(item: filter)
                                                 }
                                             }
@@ -567,6 +544,37 @@ struct AIVideoView: View {
                                     .fullScreenCover(isPresented: $isPresented) {
                                         PayWall()
                                     }
+                                }
+                                
+                                if subscriptionManager.isSubscribed {
+                                    
+                                    Button(action: {
+                                        creditsPaywallIsPresented = true
+                                    }, label: {
+                                        Text(sessionViewModel.userData != nil ?
+                                             "\(sessionViewModel.userData!.stat.availableGenerations) credits"
+                                             : "- credits")
+                                        .font(.subheadlineEmphasized)
+                                        .foregroundColor(.labelPrimary)
+                                        .padding(.horizontal, 10)
+                                        .frame(height: 32)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                                        startPoint: .leading,
+                                                        endPoint: .trailing
+                                                    ),
+                                                    lineWidth: 2
+                                                )
+                                        )
+                                        .cornerRadius(8)
+                                    })
+                                    .fullScreenCover(isPresented: $creditsPaywallIsPresented) {
+                                        CreditsPaywall()
+                                    }
+                                    
                                 }
                             }
                         

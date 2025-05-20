@@ -12,6 +12,7 @@ struct AIHugApp: App {
     @State private var showTabView = false
     @State private var showGenderView = false
     @StateObject private var dataController = DataController()
+    @StateObject private var sessionViewModel = UserSessionViewModel()
     
     init() {
         Apphud.start(apiKey: "app_tPd8B4MB7HqryPnqmePvYcN3CbKqPc")
@@ -33,10 +34,12 @@ struct AIHugApp: App {
                     UserDefaults.standard.set(true, forKey: "genderSelected")
                     genderSelected = true
                 })
+                .environmentObject(sessionViewModel)
             } else {
                 CustomTabView()
                     .environment(\.managedObjectContext, dataController.container.viewContext)
                     .environmentObject(SubscriptionManager.shared)
+                    .environmentObject(sessionViewModel)
             }
         }
 

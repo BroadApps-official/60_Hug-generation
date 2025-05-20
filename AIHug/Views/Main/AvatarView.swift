@@ -3,11 +3,23 @@ import SwiftUI
 struct AvatarView: View {
     
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
     
-    @State private var selectedImage: UIImage?
-    @State private var isSheetPresented = false
+    @State private var selectedImages: [UIImage] = []
+    //@State private var isSheetPresented = false
     @State private var avatarPaywallIsPresented = false
+    @State private var showActionSheet = false
+    @State private var imageSource: UIImagePickerController.SourceType?
+    @State private var isImagePickerPresented = false
+
+    @State private var showAlert = false
+    @State private var alertType: AlertType?
     
+    enum AlertType {
+        case successDownloading
+        case failedDownloading
+        case deleteEnsure
+    }
     
     var body: some View {
         
@@ -34,14 +46,14 @@ struct AvatarView: View {
                         
                         Spacer()
                         
-                        Text("0 out of 50")
+                        Text("\(selectedImages.count) out of \( sessionViewModel.userData!.stat.maxUploadPhotos)")
                             .font(.bodyRegular)
                             .foregroundColor(.labelSecondary)
                     }
                     .padding(.horizontal)
                     
                     HStack {
-                        Text("Add 15 to 50 photos")
+                        Text("Add \( sessionViewModel.userData!.stat.minUploadPhotos) to \( sessionViewModel.userData!.stat.maxUploadPhotos) photos")
                             .font(.caption1Regular)
                             .foregroundColor(.labelTertiary)
                         
@@ -49,99 +61,98 @@ struct AvatarView: View {
                     }
                     .padding(.horizontal)
                     
-                    HStack {
-                        Button {
-                            isSheetPresented.toggle()
-                        } label: {
-                            Spacer()
-                            VStack(spacing: 0) {
-                                
-                                if let image = selectedImage {
-                                    ZStack {
+          
+                    // Контейнер с фоном, скруглением и шириной
+                    ZStack {
+                        Color.backgroundTertiary
+                            .cornerRadius(12)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                // Кнопка "+" всегда первая
+                                Button {
+                                    showActionSheet = true
+                                } label: {
+                                    VStack(spacing: 0) {
+                                        Image(systemName: "plus")
+                                            .font(.bodyRegular)
+                                            .foregroundColor(.accentSecondary)
+                                            .padding(.bottom, 10)
+
+                                        Text("Add photo")
+                                            .font(.footnoteEmphasized)
+                                            .foregroundColor(.accentSecondary)
+                                    }
+                                    .frame(width: 100, height: 100)
+                                    .background(Color.backgroundTertiary)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [10]))
+                                            .foregroundColor(.accentSecondary)
+                                    )
+                                }
+
+                                // Выбранные изображения
+                                ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
+                                    ZStack(alignment: .topTrailing) {
                                         Image(uiImage: image)
                                             .resizable()
                                             .scaledToFill()
                                             .frame(width: 100, height: 100)
-                                            .padding(0)
                                             .cornerRadius(12)
                                             .clipped()
-                                        
-                                        VStack {
-                                            HStack {
-                                                Spacer()
-                                                
-                                                Image(systemName: "xmark")
-                                                    .foregroundColor(.labelPrimary)
-                                                    .font(.caption1Regular)
-                                                
-                                                    .frame(width: 32, height: 32)
-                                                    .background(Color.backgroundQuaternary)
-                                                    .cornerRadius(8)
-                                                
-                                            }
-                                            Spacer()
+
+                                        Button {
+                                            selectedImages.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.caption2)
+                                                .foregroundColor(.white)
+                                                .frame(width: 20, height: 20)
+                                                .background(Color.black.opacity(0.6))
+                                                .clipShape(Circle())
+                                                .padding(5)
                                         }
                                     }
-                                } else {
-                                    Image(systemName: "plus")
-                                        .font(.bodyRegular)
-                                        .foregroundColor(.accentSecondary)
-                                        .padding(.bottom, 10)
-                                    
-                                    Text("Add photo")
-                                        .font(.footnoteEmphasized)
-                                        .foregroundColor(.accentSecondary)
                                 }
                             }
-                            Spacer()
-                            
+                            .padding(.horizontal)
                         }
-                        .frame(width: 100, height: 100)
-                        .background(Color.backgroundTertiary)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(
-                                    style: StrokeStyle(lineWidth: 2, dash: [10])
-                                )
-                                .foregroundColor(selectedImage == nil ? .accentSecondary : .clear)
-                        )
-                        .padding(.horizontal)
-                        
-                        Spacer()
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 132)
-                    .background(Color.backgroundTertiary)
-                    .cornerRadius(12)
                     .padding(.horizontal)
                     
+                    Button {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            alertType = .failedDownloading
+                            showAlert = true
+                        }
+                    } label: {
+                        Text("Create (1 credit)")
+                            .font(.bodyEmphasized)
+                            .foregroundColor(.labelPrimary)
+                            .frame(height: 48)
+                            .frame(maxWidth: .infinity)
+                            .background(sessionViewModel.userData!.stat.minUploadPhotos > selectedImages.count ? Color.accentGrey : Color.accentPrimary)
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                    }
+                    .padding(.top)
+                    .opacity(sessionViewModel.userData!.stat.minUploadPhotos > selectedImages.count ? 0.12 : 1)
+                    .disabled(sessionViewModel.userData!.stat.minUploadPhotos > selectedImages.count)
                     
-                    
-                    Spacer()
                     
                     Button {
-                        
-                        
+                        alertType = .deleteEnsure
+                        showAlert = true
                     } label: {
-                        HStack {
-                            
-                            Text("Create (1 credit)")
-                                .font(.bodyEmphasized)
-                                .foregroundColor(.labelPrimary)
-                        }
-                        .frame(height: 48)
-                        .frame(maxWidth: .infinity)
-                        .background(selectedImage != nil ? Color.accentPrimary : Color.accentGrey)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
+                        Text("Clear data")
+                            .font(.calloutRegular)
+                            .foregroundColor(selectedImages.isEmpty ? Color.labelQuintuple : Color.labelTertiary)
                     }
-                    .padding(.bottom, 200)
-                    .opacity(selectedImage != nil ? 1 : 0.12)
-                    .disabled(selectedImage == nil)
-                    
-                    
-                    
+                    .padding(.top, 10)
                     
                     
                     
@@ -158,21 +169,19 @@ struct AvatarView: View {
                                     .foregroundColor(.accentPrimary)
                             }
                         }))
-                .sheet(isPresented: $isSheetPresented) {
-                    PhotoPicker(selectedImage: $selectedImage)
-                }
-                .onChange(of: selectedImage) { newValue in
-                    if newValue != nil {
-                        isSheetPresented = false
+                .fullScreenCover(isPresented: $isImagePickerPresented) {
+                    ImagePickerViewMulti { images in
+                        selectedImages.append(contentsOf: images)
                     }
                 }
+
                 
                 Spacer()
                     .frame(height: 150)
             }
+
             
-            
-                
+            if sessionViewModel.userData!.stat.availableModels <= 0 {
                 LinearGradient(
                     gradient: Gradient(colors: [.backgroundPrimary, .backgroundPrimary.opacity(0.5)]),
                     startPoint: .bottom,
@@ -181,7 +190,7 @@ struct AvatarView: View {
                 
                 VStack(spacing: 6) {
                     
-
+                    
                     Text("You've run out of available avatars")
                         .font(.title3Emphasized)
                         .foregroundColor(.labelPrimary)
@@ -203,11 +212,121 @@ struct AvatarView: View {
                     .padding(.top)
                     
                 }
-                
-
+            }
+            
+        }
+        .alert(isPresented: $showAlert) {
+            switch alertType {
+            case .successDownloading:
+                return Alert(
+                    title: Text("Video saved to gallery"),
+                    dismissButton: .default(Text("OK"))
+                )
+            case .failedDownloading:
+                return Alert(
+                    title: Text("Error"),
+                    message: Text("Something went wrong or the server is not responding. Try again or do it later."),
+                    primaryButton: .default(Text("Try Again"), action: {
+                        showAlert = false
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            alertType = .failedDownloading
+                            showAlert = true
+                        }
+                    }),
+                    secondaryButton: .cancel()
+                )
+            case .deleteEnsure:
+                return Alert(
+                    title: Text("Delete the avatar?"),
+                    message: Text("You will not be able to restore it after deleting it."),
+                    primaryButton: .destructive(Text("Delete"), action: {
+                        selectedImages = []
+                    }),
+                    secondaryButton: .cancel()
+                )
+            case .none:
+                return Alert(title: Text("Ошибка"))
+            }
         }
         .fullScreenCover(isPresented: $avatarPaywallIsPresented) {
             AvatarPayWall()
         }
+        .confirmationDialog("Select action", isPresented: $showActionSheet, titleVisibility: .visible) {
+            
+            Button("From the gallery") {
+                imageSource = .photoLibrary
+                isImagePickerPresented = true
+            }
+
+            Button("Take a photo") {
+                imageSource = .camera
+                isImagePickerPresented = true
+            }
+
+            Button("Cancel", role: .cancel) { }
+
+        } message: {
+            Text("Add a photo so we can do a cool effect with it")
+        }
+
     }
 }
+
+
+import SwiftUI
+import PhotosUI
+
+struct ImagePickerViewMulti: UIViewControllerRepresentable {
+    var onImagesPicked: ([UIImage]) -> Void
+
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 0 // 0 = без лимита
+
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
+        // ничего не обновляем
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImagesPicked: onImagesPicked)
+    }
+
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        let onImagesPicked: ([UIImage]) -> Void
+
+        init(onImagesPicked: @escaping ([UIImage]) -> Void) {
+            self.onImagesPicked = onImagesPicked
+        }
+
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            picker.dismiss(animated: true)
+
+            var images: [UIImage] = []
+            let group = DispatchGroup()
+
+            for result in results {
+                if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                    group.enter()
+                    result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
+                        defer { group.leave() }
+                        if let image = object as? UIImage {
+                            images.append(image)
+                        }
+                    }
+                }
+            }
+
+            group.notify(queue: .main) {
+                self.onImagesPicked(images)
+            }
+        }
+    }
+}
+

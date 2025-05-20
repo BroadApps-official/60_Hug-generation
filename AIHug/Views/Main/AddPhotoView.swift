@@ -9,6 +9,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
     
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
     
     let items: [T]
     @State private var selectedIndex: Int
@@ -21,83 +22,83 @@ struct AddPhotoView<T: PreviewPlayable>: View {
     @State private var generatedURL: String?
     @State private var showAlert = false
     @State private var isPresented = false
-
+    @State private var avatarPaywallIsPresented = false
+    
     init(items: [T], selectedIndex: Int, aiModel: String, type: String) {
         self.items = items
         self._selectedIndex = State(initialValue: selectedIndex)
         self.aiModel = aiModel
         self.type = type
     }
-
     
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack {
                 
-                 GeometryReader { geo in
-                     ScrollViewReader { proxy in
-                         ScrollView(.horizontal, showsIndicators: false) {
-                             HStack(spacing: -24) {
-                                 ForEach(items.indices, id: \.self) { index in
-                                     if type == "video" {
-                                         BigVideoCardView(
-                                             item: items[index],
-                                             index: index,
-                                             selectedIndex: $selectedIndex
-                                         )
-                                         .frame(width: geo.size.width, height: 445)
-                                         .animation(.easeInOut, value: selectedIndex)
-                                         .id(index)
-                                         .onTapGesture {
-                                             withAnimation {
-                                                 selectedIndex = index
-                                                 proxy.scrollTo(index, anchor: .center)
-                                             }
-                                         }
-                                     } else {
-                                         BigImageCardView(
+                GeometryReader { geo in
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: -24) {
+                                ForEach(items.indices, id: \.self) { index in
+                                    if type == "video" {
+                                        BigVideoCardView(
                                             item: items[index],
                                             index: index,
                                             selectedIndex: $selectedIndex
-                                         )
-                                         .frame(width: geo.size.width, height: 445)
-                                         .animation(.easeInOut, value: selectedIndex)
-                                         .id(index)
-                                         .onTapGesture {
-                                             withAnimation {
-                                                 selectedIndex = index
-                                                 proxy.scrollTo(index, anchor: .center)
-                                             }
-                                         }
-
-                                     }
-                                     
-                                 }
-                             }
-                             .gesture(
-                                 DragGesture()
-                                     .onEnded { value in
-                                         let threshold: CGFloat = 50
-                                         if value.translation.width < -threshold, selectedIndex < items.count - 1 {
-                                             selectedIndex += 1
-                                         } else if value.translation.width > threshold, selectedIndex > 0 {
-                                             selectedIndex -= 1
-                                         }
-                                         withAnimation {
-                                             proxy.scrollTo(selectedIndex, anchor: .center)
-                                         }
-                                     }
-                             )
-                         }
-                         .onAppear {
-                                     DispatchQueue.main.async {
-                                         proxy.scrollTo(selectedIndex, anchor: .center)
-                                     }
-                                 }
-                     }
-                 }
-                 .frame(height: 445)
-
+                                        )
+                                        .frame(width: geo.size.width, height: 445)
+                                        .animation(.easeInOut, value: selectedIndex)
+                                        .id(index)
+                                        .onTapGesture {
+                                            withAnimation {
+                                                selectedIndex = index
+                                                proxy.scrollTo(index, anchor: .center)
+                                            }
+                                        }
+                                    } else {
+                                        BigImageCardView(
+                                            item: items[index],
+                                            index: index,
+                                            selectedIndex: $selectedIndex
+                                        )
+                                        .frame(width: geo.size.width, height: 445)
+                                        .animation(.easeInOut, value: selectedIndex)
+                                        .id(index)
+                                        .onTapGesture {
+                                            withAnimation {
+                                                selectedIndex = index
+                                                proxy.scrollTo(index, anchor: .center)
+                                            }
+                                        }
+                                        
+                                    }
+                                    
+                                }
+                            }
+                            .gesture(
+                                DragGesture()
+                                    .onEnded { value in
+                                        let threshold: CGFloat = 50
+                                        if value.translation.width < -threshold, selectedIndex < items.count - 1 {
+                                            selectedIndex += 1
+                                        } else if value.translation.width > threshold, selectedIndex > 0 {
+                                            selectedIndex -= 1
+                                        }
+                                        withAnimation {
+                                            proxy.scrollTo(selectedIndex, anchor: .center)
+                                        }
+                                    }
+                            )
+                        }
+                        .onAppear {
+                            DispatchQueue.main.async {
+                                proxy.scrollTo(selectedIndex, anchor: .center)
+                            }
+                        }
+                    }
+                }
+                .frame(height: 445)
+                
                 Button {
                     isSheetPresented.toggle()
                 } label: {
@@ -121,7 +122,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                         Image(systemName: "xmark")
                                             .foregroundColor(.labelPrimary)
                                             .font(.caption1Regular)
-                                            
+                                        
                                             .frame(width: 32, height: 32)
                                             .background(Color.backgroundQuaternary)
                                             .cornerRadius(8)
@@ -136,7 +137,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                 .foregroundColor(.accentSecondary)
                                 .padding(.bottom, 10)
                             
-                            Text("Add a face")
+                            Text(aiModel == "pika" || aiModel == "hailuo" ? "Add a photo" : "Add a face")
                                 .font(.footnoteEmphasized)
                                 .foregroundColor(.accentSecondary)
                         }
@@ -182,7 +183,25 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                             let currentItem = items[selectedIndex]
                             
                             if aiModel == "scenario" {
-                                NetworkManager.shared.sendPostRequest(scenarioID: "15", image: selectedImage!)
+                                NetworkManager.shared.sendPostRequest(scenarioID: "\(currentItem.idMain)", image: selectedImage!)
+                                { result in
+                                    switch result {
+                                    case .success(let jobId):
+                                        print("✅ Job ID получен: \(jobId)")
+                                        
+                                        checkGenerationStatusPeriodicallyFotobudka(jobId: "\(jobId)")
+                                        
+                                        
+                                    case .failure(let error):
+                                        print("❌ Ошибка генерации: \(error.localizedDescription)")
+                                        
+                                        isLoading = false
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                            showAlert = true
+                                        }
+                                    }
+                                }
+                                
                             } else if aiModel == "photoEffects" {
                                 NetworkManager.shared.photoEffectsGenerate(photoEffectID: "\(currentItem.idMain)", image: selectedImage!) { result in
                                     switch result {
@@ -190,7 +209,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                         print("✅ Job ID получен: \(jobId)")
                                         
                                         checkGenerationStatusPeriodicallyFotobudka(jobId: "\(jobId)")
-
+                                        
                                         
                                     case .failure(let error):
                                         print("❌ Ошибка генерации: \(error.localizedDescription)")
@@ -245,6 +264,11 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                 .opacity(selectedImage != nil ? 1 : 0.12)
                 .disabled(selectedImage == nil)
             }
+            .onAppear {
+                sessionViewModel.loadUserDataIfNeeded()
+            }
+            .navigationTitle(items[selectedIndex].displayTitle)
+            .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .navigationBarItems(
                 leading:
@@ -256,7 +280,65 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundColor(.accentPrimary)
                         }
-                    }))
+                    }),
+                trailing:
+                    HStack(spacing: 5) {
+                        if subscriptionManager.isSubscribed && aiModel == "scenario" {
+                            Button(action: {
+                                avatarPaywallIsPresented = true
+                            }, label: {
+                                Text(sessionViewModel.userData != nil ?
+                                     "\(sessionViewModel.userData!.stat.availableModels)/\(sessionViewModel.userData!.stat.maxModels) avatars"
+                                     : "-/-")
+                                .font(.subheadlineEmphasized)
+                                .foregroundColor(.labelPrimary)
+                                .padding(.horizontal, 10)
+                                .frame(height: 32)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                )
+                                .cornerRadius(8)
+                            })
+                            .fullScreenCover(isPresented: $avatarPaywallIsPresented) {
+                                AvatarPayWall()
+                            }
+                            
+                            
+                            Button(action: {
+                                
+                            }, label: {
+                                Text(sessionViewModel.userData != nil ?
+                                     "\(sessionViewModel.userData!.stat.availableGenerations) credits"
+                                     : "- credits")
+                                .font(.subheadlineEmphasized)
+                                .foregroundColor(.labelPrimary)
+                                .padding(.horizontal, 10)
+                                .frame(height: 32)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                )
+                                .cornerRadius(8)
+                            })
+                        }
+                    }
+                
+            )
             .sheet(isPresented: $isSheetPresented) {
                 PhotoPicker(selectedImage: $selectedImage)
             }
@@ -270,9 +352,8 @@ struct AddPhotoView<T: PreviewPlayable>: View {
             }
             .fullScreenCover(isPresented: $navigateToTextGeneratedView) {
                 TextGeneratedView(item: $generatedItem, type: type)
-                
             }
-            .sheet(isPresented: $isPresented) {
+            .fullScreenCover(isPresented: $isPresented) {
                 PayWall()
             }
             .alert(isPresented: $showAlert) {
@@ -290,28 +371,31 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                     secondaryButton: .cancel()
                 )
             }
+            .withTabBarHidden(true)
             
             Spacer()
                 .frame(height: 150)
         }
+        
     }
     
+    
     func saveImageToTemporaryDirectory(image: UIImage) -> URL? {
-            let tempDirectory = FileManager.default.temporaryDirectory
-            let fileURL = tempDirectory.appendingPathComponent("merged_image.jpg")
-            
-            if let data = image.jpegData(compressionQuality: 0.8) {
-                do {
-                    try data.write(to: fileURL)
-                    print(" сохранения изображения")
-                    return fileURL
-                } catch {
-                    print("❌ Ошибка сохранения изображения: \(error.localizedDescription)")
-                    isLoading = false
-                }
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let fileURL = tempDirectory.appendingPathComponent("merged_image.jpg")
+        
+        if let data = image.jpegData(compressionQuality: 0.8) {
+            do {
+                try data.write(to: fileURL)
+                print(" сохранения изображения")
+                return fileURL
+            } catch {
+                print("❌ Ошибка сохранения изображения: \(error.localizedDescription)")
+                isLoading = false
             }
-            return nil
         }
+        return nil
+    }
     
     func checkGenerationStatusPeriodically(generationId: String) {
         var retryCount = 0
@@ -362,6 +446,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                         print("✅ URL сохранён в CoreData")
                                         
                                         isLoading = false
+                                        sessionViewModel.refreshUserData()
                                         self.navigateToTextGeneratedView = true
                                     }
                                 } catch {
@@ -386,28 +471,28 @@ struct AddPhotoView<T: PreviewPlayable>: View {
     
     func checkGenerationStatusPeriodicallyFotobudka(jobId: String) {
         var retryCount = 0
-        let maxRetries = 30
+        let maxRetries = 60
         let retryInterval: TimeInterval = 5.0
-
+        
         let currentItem = items[selectedIndex]
-
+        
         let newTextGenerations = TextGenerations(context: moc)
         newTextGenerations.id = UUID()
         newTextGenerations.date = Date()
         newTextGenerations.filter = currentItem.displayTitle
         newTextGenerations.url = nil
         newTextGenerations.type = type
-
+        
         self.generatedItem = newTextGenerations
-
+        
         do {
             try moc.save()
         } catch {
             print("❌ Ошибка сохранения в CoreData: \(error.localizedDescription)")
         }
-
+        
         let objectID = newTextGenerations.objectID
-
+        
         func checkStatus() {
             if retryCount >= maxRetries {
                 print("❌ Превышено количество попыток")
@@ -415,14 +500,14 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                 showAlert = true
                 return
             }
-
+            
             NetworkManager.shared.getGenerationStatusFotobudka(jobId: jobId) { result in
                 switch result {
                 case .success(let generationData):
                     print("✅ Фото готово: \(generationData.resultUrl)")
                     DispatchQueue.main.async {
                         self.generatedURL = generationData.resultUrl
-
+                        
                         moc.perform {
                             if let existingTextGenerations = try? moc.existingObject(with: objectID) as? TextGenerations {
                                 existingTextGenerations.url = generationData.resultUrl
@@ -431,8 +516,9 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                     DispatchQueue.main.async {
                                         self.generatedItem = existingTextGenerations
                                         print("✅ URL сохранён в CoreData")
-
+                                        
                                         isLoading = false
+                                        sessionViewModel.refreshUserData()
                                         self.navigateToTextGeneratedView = true
                                     }
                                 } catch {
@@ -441,7 +527,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                             }
                         }
                     }
-
+                    
                 case .failure(let error):
                     print("❌ Ошибка получения статуса: \(error.localizedDescription)")
                     retryCount += 1
@@ -451,10 +537,10 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                 }
             }
         }
-
+        
         checkStatus()
     }
-
+    
     
     
 }

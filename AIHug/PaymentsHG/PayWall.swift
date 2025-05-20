@@ -4,6 +4,7 @@ struct PayWall: View {
     
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
     @State private var selectedPlan: SubscriptionPlan?
     @State private var subscriptionPlans: [SubscriptionPlan] = []
 
@@ -225,7 +226,12 @@ struct PayWall: View {
         subscriptionManager.startPurchase(product: product) { success in
             isPurchasing = false
             NetworkManager.shared.setPaidPlan()
-            if success { presentationMode.wrappedValue.dismiss() }
+            if success {
+                presentationMode.wrappedValue.dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    sessionViewModel.refreshUserData()
+                }
+            }
         }
     }
     

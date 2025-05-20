@@ -4,6 +4,12 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
     
     @Environment(\.presentationMode) var presentationMode
     
+    @EnvironmentObject var sessionViewModel: UserSessionViewModel
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    
+    @State private var avatarPaywallIsPresented = false
+    @State private var creditsPaywallIsPresented = false
+    
     let items: [T]
     let type: String
     
@@ -16,13 +22,24 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVGrid(columns: columns, spacing: 20) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    NavigationLink(destination: AddPhotoView(items: items, selectedIndex: index, aiModel: "", type: type)) {
-                        if type == "video" {
-                            VideoCardView(item: item)
-                        } else {
-                            ImageCardView(item: item)
+                    if type == "style" {
+                        NavigationLink(destination: AvatarView()) {
+                            if type == "video" {
+                                VideoCardView(item: item)
+                            } else {
+                                ImageCardView(item: item)
+                            }
+                        }
+                    } else {
+                        NavigationLink(destination: AddPhotoView(items: items, selectedIndex: index, aiModel: "", type: type)) {
+                            if type == "video" {
+                                VideoCardView(item: item)
+                            } else {
+                                ImageCardView(item: item)
+                            }
                         }
                     }
+                    
                 }
 
             }
@@ -41,6 +58,67 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.accentPrimary)
                     }
-                }))
+                }),
+            trailing:
+                HStack(spacing: 5) {
+                    if subscriptionManager.isSubscribed {
+                        Button(action: {
+                            avatarPaywallIsPresented = true
+                        }, label: {
+                            Text(sessionViewModel.userData != nil ?
+                                 "\(sessionViewModel.userData!.stat.availableModels)/\(sessionViewModel.userData!.stat.maxModels) avatars"
+                                 : "-/-")
+                            .font(.subheadlineEmphasized)
+                            .foregroundColor(.labelPrimary)
+                            .padding(.horizontal, 10)
+                            .frame(height: 32)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                            .cornerRadius(8)
+                        })
+                        .fullScreenCover(isPresented: $avatarPaywallIsPresented) {
+                            AvatarPayWall()
+                        }
+                        
+                        
+                        Button(action: {
+                            creditsPaywallIsPresented = true
+                        }, label: {
+                            Text(sessionViewModel.userData != nil ?
+                                 "\(sessionViewModel.userData!.stat.availableGenerations) credits"
+                                 : "- credits")
+                            .font(.subheadlineEmphasized)
+                            .foregroundColor(.labelPrimary)
+                            .padding(.horizontal, 10)
+                            .frame(height: 32)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.accentPrimary, Color.accentSecondary]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                            .cornerRadius(8)
+                        })
+                        .fullScreenCover(isPresented: $creditsPaywallIsPresented) {
+                            CreditsPaywall()
+                        }
+                    }
+                }
+        
+        )
     }
 }
