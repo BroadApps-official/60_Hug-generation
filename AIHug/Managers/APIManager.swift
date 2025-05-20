@@ -14,7 +14,7 @@ class NetworkManager {
     private let bearerTokenFotobudka = "f113066f-2ad6-43eb-b860-8683fde1042a"
     private let appIdHailuo = "com.test.test"
     private let bundleID = "com.elv.hugg3n3r4t10n"
-    private let userID = "F452345B-BEEC-43EA-AF96-000000000" /*UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"*/
+    private let userID = /*"F452345B-BEEC-43EA-AF96-000000000"*/ UIDevice.current.identifierForVendor?.uuidString ?? "unknown_id"
     private let isNew: Bool = true
     private var appName: String = "com.elv.hugg3n3r4t10n"
     private var ai: [String] = ["pika", "pv"]
