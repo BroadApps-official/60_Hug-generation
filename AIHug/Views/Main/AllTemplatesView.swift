@@ -12,6 +12,7 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
     
     let items: [T]
     let type: String
+    let aiModel: String
     
     private let columns = [
         GridItem(.flexible(), spacing: 10),
@@ -31,7 +32,7 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
                             }
                         }
                     } else {
-                        NavigationLink(destination: AddPhotoView(items: items, selectedIndex: index, aiModel: "", type: type)) {
+                        NavigationLink(destination: AddPhotoView(items: items, selectedIndex: index, aiModel: aiModel, type: type)) {
                             if type == "video" {
                                 VideoCardView(item: item)
                             } else {

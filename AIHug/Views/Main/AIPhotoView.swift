@@ -34,7 +34,7 @@ struct AIPhotoView: View {
                                     
                                     Spacer()
                                     
-                                    NavigationLink(destination: AllTemplatesView(items: group.templates, type: "style")) {
+                                    NavigationLink(destination: AllTemplatesView(items: group.templates, type: "photo", aiModel: "photoStyles")) {
                                         HStack(spacing: 5) {
                                             Text("See all")
                                                 .font(.footnoteRegular)
@@ -88,7 +88,7 @@ struct AIPhotoView: View {
                                 
                                 Spacer()
                                 
-                                NavigationLink(destination: AllTemplatesView(items: group.effects, type: "photo")) {
+                                NavigationLink(destination: AllTemplatesView(items: group.effects, type: "photo", aiModel: "photoEffects")) {
                                     HStack(spacing: 5) {
                                         Text("See all")
                                             .font(.footnoteRegular)

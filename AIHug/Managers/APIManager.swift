@@ -445,6 +445,69 @@ class NetworkManager {
     }
     
 
+    func generateAvatar (
+        images: [UIImage],
+        completion: @escaping (Result<String, Error>) -> Void
+    ) {
+        let url = "https://nextgenwebapps.shop/api/v1/avatar/add"
+
+        let parameters: [String: String] = [
+            "userId": userID,
+            "gender": UserDefaults.standard.integer(forKey: "selectedGender") == 0 ? "f" : "m"
+        ]
+
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(bearerTokenFotobudka)"
+        ]
+
+        AF.upload(multipartFormData: { multipartFormData in
+            // Добавляем параметры
+            for (key, value) in parameters {
+                if let paramData = value.data(using: .utf8) {
+                    multipartFormData.append(paramData, withName: key)
+                }
+            }
+
+            // Добавляем изображения
+            for (index, image) in images.enumerated() {
+                let fileName = "photo\(index).jpg"
+                if let imageData = image.jpegData(compressionQuality: 0.8) {
+                    multipartFormData.append(
+                        imageData,
+                        withName: "photo[]", // <- имя ключа (уточни по API, может требоваться "photos[]")
+                        fileName: fileName,
+                        mimeType: "image/jpeg"
+                    )
+                }
+            }
+        }, to: url, method: .post, headers: headers)
+        .responseData { response in
+            switch response.result {
+            case .success(let data):
+                // Выводим сырой ответ как строку
+                if let rawString = String(data: data, encoding: .utf8) {
+                    print("📦 Raw response:\n\(rawString)")
+                }
+
+                // Пытаемся декодировать
+                do {
+                    let decoded = try JSONDecoder().decode(AvatarGenerationResponse.self, from: data)
+                    let generationId = decoded.data.id
+                    completion(.success("\(generationId)"))
+                } catch {
+                    print("❌ Ошибка декодирования: \(error)")
+                    completion(.failure(error))
+                }
+
+            case .failure(let error):
+                print("❌ Ошибка запроса: \(error.localizedDescription)")
+                completion(.failure(error))
+            }
+        }
+
+    }
+
+    
     
     func getGenerationStatus(generationId: String, completion: @escaping (Result<String, Error>) -> Void) {
         let parameters: [String: String] = [
@@ -512,7 +575,35 @@ class NetworkManager {
             }
     }
 
-    
+    func getAvatarGenerationStatus(generationId: String, completion: @escaping (Result<AvatarJobData, Error>) -> Void) {
+        let url = "https://nextgenwebapps.shop/api/v1/avatar/status"
+
+        let parameters: [String: String] = [
+            "userId": userID,
+            "generationId": generationId
+        ]
+
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(bearerTokenFotobudka)"
+        ]
+
+        AF.request(url, method: .get, parameters: parameters, headers: headers)
+            .validate()
+            .responseDecodable(of: AvatarGenerationResponse.self) { response in
+                switch response.result {
+                case .success(let decodedResponse):
+                    if decodedResponse.error {
+                        completion(.failure(NetworkError.serverError(message: decodedResponse.message ?? "Unknown error")))
+                    } else {
+                        completion(.success(decodedResponse.data))
+                    }
+
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+
     
     
     

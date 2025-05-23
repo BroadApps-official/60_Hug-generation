@@ -436,3 +436,16 @@ class UserSessionViewModel: ObservableObject {
     }
 }
 
+struct AvatarGenerationResponse: Decodable {
+    let error: Bool
+    let message: String?
+    let data: AvatarJobData
+}
+
+struct AvatarJobData: Decodable {
+    let id: Int
+    let status: String
+    let jobId: String
+    let avatar: String?
+    let createdAt: String
+}

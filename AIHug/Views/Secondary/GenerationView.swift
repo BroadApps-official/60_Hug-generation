@@ -12,7 +12,7 @@ struct GenerationView: View {
                     
                 VStack(spacing: 0) {
                     
-                    Text("Video Generation...")
+                    Text("Generation...")
                         .font(.title3Emphasized)
                         .foregroundColor(.labelPrimary)
                         .padding(.bottom, 5)

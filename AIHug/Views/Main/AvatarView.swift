@@ -6,11 +6,11 @@ struct AvatarView: View {
     @EnvironmentObject var sessionViewModel: UserSessionViewModel
     
     @State private var selectedImages: [UIImage] = []
-    //@State private var isSheetPresented = false
     @State private var avatarPaywallIsPresented = false
     @State private var showActionSheet = false
     @State private var imageSource: UIImagePickerController.SourceType?
     @State private var isImagePickerPresented = false
+    @State private var isLoading = false
 
     @State private var showAlert = false
     @State private var alertType: AlertType?
@@ -125,6 +125,26 @@ struct AvatarView: View {
                     .padding(.horizontal)
                     
                     Button {
+                        
+                        NetworkManager.shared.generateAvatar(images: selectedImages) { result in
+                            switch result {
+                            case .success(let generationId):
+                                print("✅ ID получен: \(generationId)")
+                                
+                                checkAvatarGenerationStatusPeriodically(generationId: generationId)
+
+                                
+                                
+                            case .failure(let error):
+                                print("❌ Ошибка генерации: \(error.localizedDescription)")
+                                
+                                //isLoading = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    //showAlert = true
+                                }
+                            }
+                        }
+                        
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                             alertType = .failedDownloading
                             showAlert = true
@@ -252,6 +272,9 @@ struct AvatarView: View {
         .fullScreenCover(isPresented: $avatarPaywallIsPresented) {
             AvatarPayWall()
         }
+        .fullScreenCover(isPresented: $isLoading) {
+            GenerationView()
+        }
         .confirmationDialog("Select action", isPresented: $showActionSheet, titleVisibility: .visible) {
             
             Button("From the gallery") {
@@ -271,6 +294,53 @@ struct AvatarView: View {
         }
 
     }
+    
+    func checkAvatarGenerationStatusPeriodically(generationId: String) {
+        var retryCount = 0
+        let maxRetries = 60
+        let retryInterval: TimeInterval = 5.0
+
+        func checkStatus() {
+            if retryCount >= maxRetries {
+                print("❌ Превышено количество попыток")
+                isLoading = false
+                showAlert = true
+                return
+            }
+
+            NetworkManager.shared.getAvatarGenerationStatus(generationId: generationId) { result in
+                switch result {
+                case .success(let data):
+                    print("✅ Статус: \(data.status)")
+                    if data.status.uppercased() == "COMPLETED", let avatarURL = data.avatar {
+                        print("✅ Аватар готов: \(avatarURL)")
+                        DispatchQueue.main.async {
+                            //self.generatedURL = avatarURL
+                            isLoading = false
+                            sessionViewModel.refreshUserData()
+                            //self.navigateToTextGeneratedView = true
+                        }
+                    } else {
+                        retryCount += 1
+                        DispatchQueue.main.asyncAfter(deadline: .now() + retryInterval) {
+                            checkStatus()
+                        }
+                    }
+
+                case .failure(let error):
+                    print("❌ Ошибка получения статуса: \(error.localizedDescription)")
+                    retryCount += 1
+                    DispatchQueue.main.asyncAfter(deadline: .now() + retryInterval) {
+                        checkStatus()
+                    }
+                }
+            }
+        }
+
+        checkStatus()
+    }
+
+    
 }
 
 

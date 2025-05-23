@@ -5,10 +5,11 @@ struct CreditsPaywall: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     @EnvironmentObject var sessionViewModel: UserSessionViewModel
-
+    
     @State private var showCloseButton = false
     @State private var isPurchasing = false
     
+    @State private var subscriptionPlans: [CreditsPlan] = []
     
     var body: some View {
         NavigationView {
@@ -71,25 +72,26 @@ struct CreditsPaywall: View {
                             .frame(height: 140)
                             
                             Spacer()
-                                .frame(height: 20)
+                                .frame(height: 30)
+                            
+                            VStack(spacing: 12) {
+                                ForEach(subscriptionPlans, id: \.rawId) { plan in
+                                    SubscriptionButtonCredits(plan: plan) { selected in
+                                        purchase(plan: selected)
+                                    }
+                                }
 
+                            }
+                            
+                            Spacer()
+                                .frame(height: 30)
+                            
+                            
                         }
                     }
                     
                     
-                    VStack(spacing: 0) {
                         
-                        HStack(alignment: .top) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.caption1Regular)
-                                .foregroundColor(.labelQuaternary)
-                            
-                            Text("Cancel Anytime")
-                                .font(.caption1Regular)
-                                .foregroundColor(.labelQuaternary)
-                        }
-                        .frame(height: 32)
-                                                
                         HStack {
                             
                             Button {
@@ -123,13 +125,21 @@ struct CreditsPaywall: View {
                         }
                         .frame(height: 44)
                         .padding(.horizontal)
-                    }
+                    
                 }
             }
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     showCloseButton = true
                 }
+                
+                let plans = CreditsPlan.from(productIds: subscriptionManager.creditsApphud.map(\.productId))
+                subscriptionPlans = plans
+                
+            }
+            .onChange(of: subscriptionManager.creditsApphud) { newProducts in
+                let plans = CreditsPlan.from(productIds: newProducts.map(\.productId))
+                subscriptionPlans = plans
             }
             .navigationBarItems(
                 trailing:
@@ -137,7 +147,7 @@ struct CreditsPaywall: View {
                     .opacity(showCloseButton ? 1 : 0)
                     .animation(.easeIn(duration: 1), value: showCloseButton)
             )
-
+            
         }
     }
     
@@ -150,4 +160,78 @@ struct CreditsPaywall: View {
         }
     }
     
+    private func purchase(plan: CreditsPlan) {
+        isPurchasing = true
+        guard let product = subscriptionManager.creditsApphud.first(where: { $0.skProduct?.productIdentifier == plan.rawId }) else {
+            isPurchasing = false
+            return
+        }
+        subscriptionManager.startPurchase(product: product) { success in
+            isPurchasing = false
+            if success {
+                presentationMode.wrappedValue.dismiss()
+            }
+        }
+    }
+    
+}
+
+struct SubscriptionButtonCredits: View {
+    
+    let plan: CreditsPlan
+    var onTap: (CreditsPlan) -> Void
+    @ObservedObject var subscriptionManager = SubscriptionManager.shared
+    
+    var body: some View {
+        Button(action: {onTap(plan)}) {
+            HStack(spacing: 0) {
+                
+                Text("\(plan.credits)")
+                    .font(.bodyEmphasized)
+                    .foregroundColor(.labelPrimary)
+                    .padding(.trailing, 4)
+                
+                Text("Credits")
+                    .font(.bodyRegular)
+                    .foregroundColor(.labelTertiary)
+                
+                Spacer()
+                
+                Text(subscriptionManager.getCreditsPrice(for: plan.rawId))
+                    .font(.bodyRegular)
+                    .foregroundColor(.labelPrimary)
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(.labelPrimary)
+                    .padding(.leading, 10)
+                
+            }
+            .padding(.horizontal)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(Color.backgroundTertiary)
+            .cornerRadius(12)
+            .padding(.horizontal)
+        }
+    }
+    
+}
+
+struct CreditsPlan: Equatable {
+    
+    let credits: Int
+    let rawId: String
+    
+    static func from(productIds: [String]) -> [CreditsPlan] {
+        productIds.compactMap { id in
+            let parts = id.components(separatedBy: "__")
+            guard parts.count == 3,
+                  let credits = Int(parts[0])
+            else {
+                return nil
+            }
+            return CreditsPlan(credits: credits,  rawId: id)
+        }
+    }
 }

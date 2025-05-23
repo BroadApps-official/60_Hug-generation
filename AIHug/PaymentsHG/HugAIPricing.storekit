@@ -14,7 +14,66 @@
 
   ],
   "products" : [
-
+    {
+      "displayPrice" : "250.00",
+      "familyShareable" : false,
+      "internalID" : "86284DD1",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "5000__Tokens__250.00",
+      "referenceName" : "5000 Tokens",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "66.00",
+      "familyShareable" : false,
+      "internalID" : "54DDC2F0",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "1000__Tokens__66.00",
+      "referenceName" : "1000 Tokens",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "23.00",
+      "familyShareable" : false,
+      "internalID" : "7EB3C733",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "300__Tokens__23.00",
+      "referenceName" : "300 Tokens",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "9.00",
+      "familyShareable" : false,
+      "internalID" : "368B529D",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "100__Tokens__9.00",
+      "referenceName" : "100 Tokens",
+      "type" : "NonConsumable"
+    }
   ],
   "settings" : {
     "_failTransactionsEnabled" : false,
@@ -97,35 +156,7 @@
           ],
           "productID" : "week_7.99_nottrial",
           "recurringSubscriptionPeriod" : "P1W",
-          "referenceName" : "week_7.99_nottrial",
-          "subscriptionGroupID" : "69A4E778",
-          "type" : "RecurringSubscription",
-          "winbackOffers" : [
-
-          ]
-        },
-        {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "39.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "78D5B63A",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "",
-              "displayName" : "",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "yearly_39.99_nottrial.",
-          "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "yearly_39.99_nottrial.",
+          "referenceName" : "Weekly",
           "subscriptionGroupID" : "69A4E778",
           "type" : "RecurringSubscription",
           "winbackOffers" : [

@@ -1,4 +1,5 @@
 import AVKit
+import AVFoundation
 import SwiftUI
 
 struct AddPhotoView<T: PreviewPlayable>: View {
@@ -23,6 +24,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
     @State private var showAlert = false
     @State private var isPresented = false
     @State private var avatarPaywallIsPresented = false
+    @State private var creditsPaywallIsPresented = false
     
     init(items: [T], selectedIndex: Int, aiModel: String, type: String) {
         self.items = items
@@ -188,6 +190,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                     switch result {
                                     case .success(let jobId):
                                         print("✅ Job ID получен: \(jobId)")
+                                        print("✅ scenario ID получен: \(currentItem.idMain)")
                                         
                                         checkGenerationStatusPeriodicallyFotobudka(jobId: "\(jobId)")
                                         
@@ -313,7 +316,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                             
                             
                             Button(action: {
-                                
+                                creditsPaywallIsPresented = true
                             }, label: {
                                 Text(sessionViewModel.userData != nil ?
                                      "\(sessionViewModel.userData!.stat.availableGenerations) credits"
@@ -335,6 +338,9 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                                 )
                                 .cornerRadius(8)
                             })
+                            .fullScreenCover(isPresented: $creditsPaywallIsPresented) {
+                                CreditsPaywall()
+                            }
                         }
                     }
                 
@@ -482,13 +488,44 @@ struct AddPhotoView<T: PreviewPlayable>: View {
         newTextGenerations.filter = currentItem.displayTitle
         newTextGenerations.url = nil
         newTextGenerations.type = type
-        
-        self.generatedItem = newTextGenerations
-        
-        do {
-            try moc.save()
-        } catch {
-            print("❌ Ошибка сохранения в CoreData: \(error.localizedDescription)")
+        if aiModel == "scenario" {
+            if let selectedImage = selectedImage,
+               let imageData = selectedImage.jpegData(compressionQuality: 0.5) {
+                newTextGenerations.photoreference = imageData
+            } else {
+                newTextGenerations.photoreference = nil
+            }
+
+            if currentItem.previewURL.hasSuffix(".mp4") {
+                generatePreviewImage(from: currentItem.previewURL) { imageData in
+                    DispatchQueue.main.async {
+                        newTextGenerations.scenarioreference = imageData
+
+                        do {
+                            try moc.save()
+                            self.generatedItem = newTextGenerations
+                        } catch {
+                            print("❌ Ошибка сохранения в CoreData: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            } else {
+                newTextGenerations.scenarioreference = nil
+
+                do {
+                    try moc.save()
+                    self.generatedItem = newTextGenerations
+                } catch {
+                    print("❌ Ошибка сохранения в CoreData: \(error.localizedDescription)")
+                }
+            }
+        } else {
+            do {
+                try moc.save()
+                self.generatedItem = newTextGenerations
+            } catch {
+                print("❌ Ошибка сохранения в CoreData: \(error.localizedDescription)")
+            }
         }
         
         let objectID = newTextGenerations.objectID
@@ -540,8 +577,48 @@ struct AddPhotoView<T: PreviewPlayable>: View {
         
         checkStatus()
     }
-    
-    
+
+    func generatePreviewImage(from remoteURLString: String, completion: @escaping (Data?) -> Void) {
+        guard let remoteURL = URL(string: remoteURLString) else {
+            print("❌ Невалидный URL строки")
+            completion(nil)
+            return
+        }
+        
+        // 1. Скачиваем видео во временную папку
+        let tempDir = FileManager.default.temporaryDirectory
+        let localURL = tempDir.appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
+
+        URLSession.shared.downloadTask(with: remoteURL) { downloadedURL, response, error in
+            if let downloadedURL = downloadedURL {
+                do {
+                    // 2. Перемещаем файл во временную папку
+                    try FileManager.default.moveItem(at: downloadedURL, to: localURL)
+                    
+                    // 3. Генерация кадра из локального файла
+                    let asset = AVAsset(url: localURL)
+                    let generator = AVAssetImageGenerator(asset: asset)
+                    generator.appliesPreferredTrackTransform = true
+                    
+                    let time = CMTime(seconds: 1, preferredTimescale: 600)
+                    let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
+                    let uiImage = UIImage(cgImage: cgImage)
+                    
+                    // 4. Конвертируем в Data
+                    let jpegData = uiImage.jpegData(compressionQuality: 0.5)
+                    
+                    completion(jpegData)
+                } catch {
+                    print("❌ Ошибка обработки видео: \(error)")
+                    completion(nil)
+                }
+            } else {
+                print("❌ Ошибка скачивания: \(error?.localizedDescription ?? "неизвестная ошибка")")
+                completion(nil)
+            }
+        }.resume()
+    }
+
     
 }
 

@@ -420,7 +420,7 @@ struct AIVideoView: View {
                                                 
                                                 Spacer()
                                                 
-                                                NavigationLink(destination: AllTemplatesView(items: viewModel.groupedTemplates[category] ?? [], type: "video")) {
+                                                NavigationLink(destination: AllTemplatesView(items: viewModel.groupedTemplates[category] ?? [], type: "video", aiModel: "pika")) {
                                                     HStack(spacing: 5) {
                                                         Text("See all")
                                                             .font(.footnoteRegular)
@@ -465,7 +465,7 @@ struct AIVideoView: View {
                                             
                                             Spacer()
                                             
-                                            NavigationLink(destination: AllTemplatesView(items: viewModelHailuo.filters, type: "video")) {
+                                            NavigationLink(destination: AllTemplatesView(items: viewModelHailuo.filters, type: "video", aiModel: "hailuo")) {
                                                 HStack(spacing: 5) {
                                                     Text("See all")
                                                         .font(.footnoteRegular)

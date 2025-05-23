@@ -44,7 +44,7 @@ struct TextGeneratedView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
                         
-                        if item?.prompt == nil {
+                        if item?.prompt == nil && item?.photoreference == nil {
                             if item?.type == "video" {
                                 Spacer()
                                     .frame(height: 100)
@@ -159,17 +159,29 @@ struct TextGeneratedView: View {
                         }
                         
                         if let data = item?.photoreference, let image = UIImage(data: data) {
-                            HStack {
+                            HStack(spacing: -30) { // Отрицательный spacing для наезжания
+                                
+                                if let data2 = item?.scenarioreference, let image2 = UIImage(data: data2) {
+                                    Image(uiImage: image2)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .cornerRadius(12)
+                                        .clipped()
+                                        .zIndex(0) // Второе изображение под первым
+                                }
+                                
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFill()
                                     .frame(width: 100, height: 100)
-                                    .padding(0)
                                     .cornerRadius(12)
                                     .clipped()
+                                    .zIndex(1) // Первое изображение поверх
+                                
                             }
                             .padding(.horizontal)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, alignment: .center) // Выравнивание по левому краю
                             .frame(height: 132)
                             .background(Color.backgroundTertiary)
                             .cornerRadius(12)
