@@ -10,13 +10,13 @@ struct AIVideoView: View {
     @StateObject private var viewModelHailuo = FiltersViewModel()
     @StateObject private var viewModelFotobudka = ScenariosViewModel()
     @EnvironmentObject var sessionViewModel: UserSessionViewModel
-    
+
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     
     @State private var isPresented = false
     @State private var isLoading: Bool = false
     @State private var scrollOffset: CGFloat = 0
-    @State private var selectedSegment = 1
+    @State private var selectedSegment = 2
     @State private var isSheetPresented = false
     @State private var selectedButton: String? = nil
     @State private var navigateToTextGeneratedView = false

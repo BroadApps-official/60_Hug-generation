@@ -6,7 +6,7 @@ struct AIPhotoView: View {
     @StateObject private var viewModelEffectsFotbudka = EffectsViewModel()
     @StateObject private var viewModelStylesFotbudka = StylesViewModel()
     @EnvironmentObject var sessionViewModel: UserSessionViewModel
-    
+
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     
     @State private var avatarPaywallIsPresented = false
@@ -34,7 +34,7 @@ struct AIPhotoView: View {
                                     
                                     Spacer()
                                     
-                                    NavigationLink(destination: AllTemplatesView(items: group.templates, type: "photo", aiModel: "photoStyles")) {
+                                    NavigationLink(destination: AllTemplatesView(items: group.templates, type: "style", aiModel: "photoStyles")) {
                                         HStack(spacing: 5) {
                                             Text("See all")
                                                 .font(.footnoteRegular)
@@ -59,12 +59,11 @@ struct AIPhotoView: View {
                                 
                                 HStack(spacing: 10) {
                                     ForEach(templates) { template in
-                                        //NavigationLink(destination: AddPhotoView(items: group.templates, selectedIndex: 0, aiModel: //"photoStyles", type: "photo")) {
-                                        //    ImageCardView(item: template)
-                                        //}
-                                        NavigationLink(destination: AvatarView()) {
-                                            ImageCardView(item: template)
-                                        }
+                                        
+                                            NavigationLink(destination: AllAvatarsView(templateID: "\(template.id)")) {
+                                                ImageCardView(item: template)
+                                            }
+                                                                               
                                     }
                                     
                                     if templates.count == 1 {

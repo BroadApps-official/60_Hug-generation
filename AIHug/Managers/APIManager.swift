@@ -444,6 +444,45 @@ class NetworkManager {
             }
     }
     
+    func photoStylesGenerate(templateID: String, avatarID: String, completion: @escaping (Result<String, Error>) -> Void) {
+        let url = "https://nextgenwebapps.shop/api/v1/photo/generate"
+
+        let parameters: [String: String] = [
+            "userId": userID,
+            "templateId": templateID,
+            "avatarId": avatarID
+        ]
+
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(bearerTokenFotobudka)"
+        ]
+
+        AF.upload(multipartFormData: { multipartFormData in
+            // Добавляем параметры
+            for (key, value) in parameters {
+                if let paramData = value.data(using: .utf8) {
+                    multipartFormData.append(paramData, withName: key)
+                }
+            }
+
+        }, to: url, method: .post, headers: headers)
+        .responseJSON { response in
+                switch response.result {
+                case .success(let value):
+                    if let json = value as? [String: Any],
+                       let dataDict = json["data"] as? [String: Any],
+                       let jobId = dataDict["jobId"] as? String {
+                        completion(.success(jobId))
+                    } else {
+                        completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Неверный формат ответа: не найден jobId"])))
+                    }
+
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
 
     func generateAvatar (
         images: [UIImage],
@@ -467,6 +506,16 @@ class NetworkManager {
                     multipartFormData.append(paramData, withName: key)
                 }
             }
+            
+            if let firstImage = images.first,
+                       let previewData = firstImage.jpegData(compressionQuality: 0.8) {
+                        multipartFormData.append(
+                            previewData,
+                            withName: "preview", // ⚠️ имя поля уточни в документации, если нужно другое
+                            fileName: "preview.jpg",
+                            mimeType: "image/jpeg"
+                        )
+                    }
 
             // Добавляем изображения
             for (index, image) in images.enumerated() {
@@ -474,7 +523,7 @@ class NetworkManager {
                 if let imageData = image.jpegData(compressionQuality: 0.8) {
                     multipartFormData.append(
                         imageData,
-                        withName: "photo[]", // <- имя ключа (уточни по API, может требоваться "photos[]")
+                        withName: "photo[]",
                         fileName: fileName,
                         mimeType: "image/jpeg"
                     )
@@ -590,6 +639,34 @@ class NetworkManager {
         AF.request(url, method: .get, parameters: parameters, headers: headers)
             .validate()
             .responseDecodable(of: AvatarGenerationResponse.self) { response in
+                switch response.result {
+                case .success(let decodedResponse):
+                    if decodedResponse.error {
+                        completion(.failure(NetworkError.serverError(message: decodedResponse.message ?? "Unknown error")))
+                    } else {
+                        completion(.success(decodedResponse.data))
+                    }
+
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
+    func getAvatars(completion: @escaping (Result<[Avatar], Error>) -> Void) {
+        let url = "https://nextgenwebapps.shop/api/v1/avatar/list"
+
+        let parameters: [String: String] = [
+            "userId": userID
+        ]
+
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(bearerTokenFotobudka)"
+        ]
+
+        AF.request(url, method: .get, parameters: parameters, headers: headers)
+            .validate()
+            .responseDecodable(of: GetAvatarsResponse.self) { response in
                 switch response.result {
                 case .success(let decodedResponse):
                     if decodedResponse.error {

@@ -422,7 +422,13 @@ struct HistoryItemCard: View {
             .overlay(
                 HStack {
                     Spacer()
-                    Text(textGenerationItems.filter ?? "Prompt")
+                    Text(
+                        textGenerationItems.filter?.isEmpty == false
+                            ? textGenerationItems.filter!
+                            : (textGenerationItems.type == "video"
+                               ? (textGenerationItems.prompt ?? "Prompt")
+                               : "")
+                    )
                         .foregroundColor(.white)
                         .font(.subheadlineEmphasized)
                         .lineLimit(1)

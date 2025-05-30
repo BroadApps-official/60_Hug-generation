@@ -345,6 +345,7 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                     }
                 
             )
+            
             .sheet(isPresented: $isSheetPresented) {
                 PhotoPicker(selectedImage: $selectedImage)
             }
@@ -377,11 +378,12 @@ struct AddPhotoView<T: PreviewPlayable>: View {
                     secondaryButton: .cancel()
                 )
             }
-            .withTabBarHidden(true)
+            
             
             Spacer()
                 .frame(height: 150)
         }
+
         
     }
     

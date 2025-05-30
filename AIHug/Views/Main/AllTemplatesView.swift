@@ -6,7 +6,7 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
     
     @EnvironmentObject var sessionViewModel: UserSessionViewModel
     @EnvironmentObject var subscriptionManager: SubscriptionManager
-    
+
     @State private var avatarPaywallIsPresented = false
     @State private var creditsPaywallIsPresented = false
     
@@ -24,13 +24,14 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
             LazyVGrid(columns: columns, spacing: 20) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     if type == "style" {
-                        NavigationLink(destination: AvatarView()) {
-                            if type == "video" {
-                                VideoCardView(item: item)
-                            } else {
+                        
+                            NavigationLink(destination: AllAvatarsView(templateID: "\(item.id)")) {
+                                
                                 ImageCardView(item: item)
+                                
                             }
-                        }
+                        
+                        
                     } else {
                         NavigationLink(destination: AddPhotoView(items: items, selectedIndex: index, aiModel: aiModel, type: type)) {
                             if type == "video" {
@@ -42,7 +43,7 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
                     }
                     
                 }
-
+                
             }
             .padding()
             
@@ -119,7 +120,7 @@ struct AllTemplatesView<T: Identifiable & PreviewPlayable>: View {
                         }
                     }
                 }
-        
+            
         )
     }
 }

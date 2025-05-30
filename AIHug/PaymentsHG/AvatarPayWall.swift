@@ -9,6 +9,8 @@ struct AvatarPayWall: View {
     @State private var isPurchasing = false
     @State private var subscriptionPlans: [SubscriptionPlansAvatar] = []
     @State private var selectedPlan: SubscriptionPlansAvatar?
+    @State private var restoreAlert: Bool = false
+    @State private var restoreMessage: String = ""
     
     
     var body: some View {
@@ -151,10 +153,19 @@ struct AvatarPayWall: View {
                 let plans = SubscriptionPlansAvatar.from(productIds: subscriptionManager.avatarsApphud.map(\.productId))
                     subscriptionPlans = plans
                 
+                selectedPlan = plans.first
+                
             }
             .onChange(of: subscriptionManager.avatarsApphud) { newProducts in
                 let plans = SubscriptionPlansAvatar.from(productIds: newProducts.map(\.productId))
                 subscriptionPlans = plans
+                
+                if selectedPlan == nil {                    
+                    selectedPlan = plans.first
+                }
+            }
+            .alert(isPresented: $restoreAlert) {
+                Alert(title: Text("Restore Purchases"), message: Text(restoreMessage), dismissButton: .default(Text("OK")))
             }
 
         }
@@ -184,7 +195,14 @@ struct AvatarPayWall: View {
     
     private func restorePurchases() {
         subscriptionManager.restorePurchases { success in
-            if success { presentationMode.wrappedValue.dismiss() }
+            if success {
+                restoreMessage = "✅ Purchases successfully restored!"
+                restoreAlert = true
+                presentationMode.wrappedValue.dismiss()
+            } else {
+                restoreMessage = "❌ No purchases found to restore."
+                restoreAlert = true
+            }
         }
     }
     

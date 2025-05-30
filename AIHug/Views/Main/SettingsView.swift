@@ -18,6 +18,8 @@ struct SettingsView: View {
     @State private var showAlert = false
     @State private var alertType: AlertType?
     @State private var selectedSegment: Int = UserDefaults.standard.integer(forKey: "selectedGender")
+    @State private var restoreAlert: Bool = false
+    @State private var restoreMessage: String = ""
     
     @Binding var selectedTabIndex: Int
     
@@ -210,8 +212,18 @@ struct SettingsView: View {
                                 
                                 Spacer()
                                 
-                                Toggle("", isOn: $isNotificationEnabled)
-                                    .padding(.trailing)
+                                Toggle("", isOn: Binding(
+                                    get: { isNotificationEnabled },
+                                    set: { newValue in
+                                        if newValue {
+                                            requestNotificationPermission()
+                                        } else {
+                                            openSystemSettings()
+                                        }
+                                    }
+                                ))
+                                .tint(.accentPrimary)
+                                .padding(.trailing)
                             }
                             .frame(height: 44)
                             .background(Color.backgroundTertiary)
@@ -249,7 +261,7 @@ struct SettingsView: View {
                             
                             HStack() {
                                 Spacer()
-                                Text("App Version: 1.2.7")
+                                Text("App Version: 1.2.9")
                                     .font(.footnoteRegular)
                                     .foregroundColor(Color.labelTertiary)
                                 Spacer()
@@ -300,6 +312,9 @@ struct SettingsView: View {
                         }
                     
                 )
+                .onAppear {
+                    updateNotificationPermissionStatus()
+                }
                 .fullScreenCover(isPresented: $avatarPaywallIsPresented) {
                     AvatarPayWall()
                 }
@@ -320,6 +335,9 @@ struct SettingsView: View {
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .cacheDidClear)) { _ in
                     cacheSize = VideoCacheManager.shared.formattedCacheSize()
+                }
+                .alert(isPresented: $restoreAlert) {
+                    Alert(title: Text("Restore Purchases"), message: Text(restoreMessage), dismissButton: .default(Text("OK")))
                 }
             }
         }
@@ -353,14 +371,38 @@ struct SettingsView: View {
         UIApplication.shared.windows.first?.rootViewController?.present(activityVC, animated: true)
     }
     
+    func updateNotificationPermissionStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                self.isNotificationEnabled = settings.authorizationStatus == .authorized
+            }
+        }
+    }
+
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            DispatchQueue.main.async {
+                self.isNotificationEnabled = granted
+            }
+        }
+    }
+    
+    func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
     private func restorePurchases() {
-        Apphud.restorePurchases { subscriptions, nonRenewingPurchases, error in
-            if let subscriptions = subscriptions, !subscriptions.isEmpty {
-                
-            } else if let nonRenewingPurchases = nonRenewingPurchases, !nonRenewingPurchases.isEmpty {
-                
+        subscriptionManager.restorePurchases { success in
+            if success {
+                restoreMessage = "✅ Purchases successfully restored!"
+                restoreAlert = true
+                presentationMode.wrappedValue.dismiss()
             } else {
-                print("No active subscriptions found or error: \(error?.localizedDescription ?? "Unknown error")")
+                restoreMessage = "❌ No purchases found to restore."
+                restoreAlert = true
             }
         }
     }

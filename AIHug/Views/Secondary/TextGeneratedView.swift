@@ -50,7 +50,7 @@ struct TextGeneratedView: View {
                                     .frame(height: 100)
                             } else {
                                 Spacer()
-                                    .frame(height: 50)
+                                    .frame(height: 10)
                             }
                             
                         }
@@ -118,7 +118,7 @@ struct TextGeneratedView: View {
                                                 .foregroundColor(.red)
                                         }
                                     }
-                                    .frame(height: 490)
+                                    .frame(height: 600)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                     .padding()
                                     .onAppear {
@@ -198,7 +198,11 @@ struct TextGeneratedView: View {
                     Spacer()
                     
                     Button {
-                        saveVideoToGallery(urlString: item?.url)
+                        if type == "video" {
+                            saveVideoToGallery(urlString: item?.url)
+                        } else {
+                            saveImageToGallery(image: uiImage)
+                        }
                     } label: {
                         HStack {
                             Text("Save")
@@ -240,12 +244,12 @@ struct TextGeneratedView: View {
                 switch alertType {
                 case .successDownloading:
                     return Alert(
-                        title: Text("Video saved to gallery"),
+                        title: Text("\(type ?? "file") saved to gallery"),
                         dismissButton: .default(Text("OK"))
                     )
                 case .failedDownloading:
                     return Alert(
-                        title: Text("Error, video not saved to gallery"),
+                        title: Text("Error, \(type ?? "file") not saved to gallery"),
                         message: Text("Something went wrong or the server is not responding. Try again or do it later."),
                         primaryButton: .default(Text("Try Again"), action: {
                             showAlert = false
@@ -258,7 +262,7 @@ struct TextGeneratedView: View {
                     )
                 case .deleteEnsure:
                     return Alert(
-                        title: Text("Delete this video?"),
+                        title: Text("Delete this \(type ?? "file")?"),
                         message: Text("It will disappear from the list on the History tab. You will not be able to restore it after deleting it."),
                         primaryButton: .destructive(Text("Delete"), action: {
                             deleteItem()
@@ -287,14 +291,23 @@ struct TextGeneratedView: View {
                         
                         Section {
                             Button(action: {
-                                if let urlString = item?.url {
-                                    prepareVideoForSharing(from: urlString)
+                                if type == "video" {
+                                    if let urlString = item?.url {
+                                        prepareVideoForSharing(from: urlString)
+                                    }
+                                } else {
+                                
+                                    prepareImageForSharing(from: uiImage)
                                 }
                             }) {
                                 Label("Share", systemImage: "arrow.down.to.line")
                             }
                             Button(action: {
-                                saveVideoToFiles(urlString: item?.url)
+                                if type == "video" {
+                                    saveVideoToFiles(urlString: item?.url)
+                                } else {
+                                    saveImageToFiles(image: uiImage)
+                                }
                             }) {
                                 Label("Save to files", systemImage: "folder.badge.plus")
                             }
@@ -394,6 +407,110 @@ struct TextGeneratedView: View {
         hideControlsWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: workItem)
     }
+    
+    func saveImageToGallery(image: UIImage?) {
+        guard let image = image else {
+            alertType = .failedDownloading
+            showAlert = true
+            return
+        }
+
+        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+        alertType = .successDownloading
+        showAlert = true
+        showRateAlert()
+    }
+
+    func saveImageToFiles(image: UIImage?) {
+        // 1. Сразу показываем индикатор загрузки
+        DispatchQueue.main.async {
+            self.isPreparingExport = true
+            self.showDocumentExporter = true // Показываем sheet с ProgressView
+        }
+        
+        // 2. Сохраняем изображение в фоне
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let image = image,
+                  let imageData = image.jpegData(compressionQuality: 0.8) else {
+                DispatchQueue.main.async {
+                    self.showDocumentExporter = false
+                    self.alertType = .failedDownloading
+                    self.showAlert = true
+                }
+                return
+            }
+            
+            let fileName = UUID().uuidString + ".jpg"
+            let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let fileURL = docsURL.appendingPathComponent(fileName)
+            
+            do {
+                try imageData.write(to: fileURL)
+                
+                // 3. Обновляем состояние после сохранения
+                DispatchQueue.main.async {
+                    self.exportFileURL = fileURL
+                    self.isPreparingExport = false // Автоматически скроет ProgressView и покажет DocumentExporter
+                }
+                
+            } catch {
+                DispatchQueue.main.async {
+                    self.showDocumentExporter = false
+                    self.alertType = .failedDownloading
+                    self.showAlert = true
+                }
+            }
+        }
+    }
+
+
+    func prepareImageForSharing(from image: UIImage?) {
+        guard let image = image else {
+            print("❌ Invalid image")
+            alertType = .failedDownloading
+            showAlert = true
+            return
+        }
+
+        // Показываем индикатор загрузки
+        DispatchQueue.main.async {
+            self.isPreparingExport = true
+            self.isShareSheetPresented = true
+        }
+
+        // Обработка в фоне
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+                DispatchQueue.main.async {
+                    self.alertType = .failedDownloading
+                    self.showAlert = true
+                    self.isShareSheetPresented = false
+                }
+                return
+            }
+
+            let fileName = UUID().uuidString + ".jpg"
+            let tempDir = FileManager.default.temporaryDirectory
+            let fileURL = tempDir.appendingPathComponent(fileName)
+
+            do {
+                try imageData.write(to: fileURL)
+                DispatchQueue.main.async {
+                    self.shareURL = fileURL
+                    self.isPreparingExport = false
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    print("❌ Image save failed: \(error)")
+                    self.alertType = .failedDownloading
+                    self.showAlert = true
+                    self.isShareSheetPresented = false
+                }
+            }
+        }
+    }
+
+    
     
     func prepareVideoForSharing(from urlString: String) {
         guard let videoURL = URL(string: urlString) else {

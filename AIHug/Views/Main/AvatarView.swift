@@ -16,7 +16,7 @@ struct AvatarView: View {
     @State private var alertType: AlertType?
     
     enum AlertType {
-        case successDownloading
+        case successfullyCreated
         case failedDownloading
         case deleteEnsure
     }
@@ -123,8 +123,11 @@ struct AvatarView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 132)
                     .padding(.horizontal)
+                            
                     
                     Button {
+                        
+                        isLoading = true
                         
                         NetworkManager.shared.generateAvatar(images: selectedImages) { result in
                             switch result {
@@ -138,17 +141,17 @@ struct AvatarView: View {
                             case .failure(let error):
                                 print("❌ Ошибка генерации: \(error.localizedDescription)")
                                 
-                                //isLoading = false
+                                isLoading = false
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     //showAlert = true
                                 }
                             }
                         }
                         
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                            alertType = .failedDownloading
-                            showAlert = true
-                        }
+                        //DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        //    alertType = .failedDownloading
+                        //    showAlert = true
+                        //}
                     } label: {
                         Text("Create (1 credit)")
                             .font(.bodyEmphasized)
@@ -207,18 +210,18 @@ struct AvatarView: View {
                     startPoint: .bottom,
                     endPoint: .top
                 )
-                
+            
                 VStack(spacing: 6) {
-                    
-                    
+            
+            
                     Text("You've run out of available avatars")
                         .font(.title3Emphasized)
                         .foregroundColor(.labelPrimary)
-                    
+            
                     Text("Add new avatars")
                         .font(.footnoteRegular)
                         .foregroundColor(.labelSecondary)
-                    
+            
                     Button {
                         avatarPaywallIsPresented = true
                     } label: {
@@ -230,16 +233,16 @@ struct AvatarView: View {
                             .cornerRadius(12)
                     }
                     .padding(.top)
-                    
+            
                 }
             }
             
         }
         .alert(isPresented: $showAlert) {
             switch alertType {
-            case .successDownloading:
+            case .successfullyCreated:
                 return Alert(
-                    title: Text("Video saved to gallery"),
+                    title: Text("Avatar created successfully"),
                     dismissButton: .default(Text("OK"))
                 )
             case .failedDownloading:
@@ -297,7 +300,7 @@ struct AvatarView: View {
     
     func checkAvatarGenerationStatusPeriodically(generationId: String) {
         var retryCount = 0
-        let maxRetries = 60
+        let maxRetries = 100
         let retryInterval: TimeInterval = 5.0
 
         func checkStatus() {
@@ -312,13 +315,16 @@ struct AvatarView: View {
                 switch result {
                 case .success(let data):
                     print("✅ Статус: \(data.status)")
-                    if data.status.uppercased() == "COMPLETED", let avatarURL = data.avatar {
-                        print("✅ Аватар готов: \(avatarURL)")
+                    
+                    if data.status.uppercased() == "OK" {
+                        print("✅ Аватар готов")
                         DispatchQueue.main.async {
-                            //self.generatedURL = avatarURL
                             isLoading = false
                             sessionViewModel.refreshUserData()
-                            //self.navigateToTextGeneratedView = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                alertType = .successfullyCreated
+                                showAlert = true
+                            }
                         }
                     } else {
                         retryCount += 1

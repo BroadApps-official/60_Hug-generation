@@ -114,14 +114,17 @@ class SubscriptionManager: ObservableObject {
     }
     
     func restorePurchases(completion: @escaping (Bool) -> Void) {
-        Apphud.restorePurchases { subscriptions, _, error in
+        Apphud.restorePurchases { subscriptions, purchases, error in
             if let error = error {
-                print("❌ Error restore \(error.localizedDescription)")
+                print("❌ Restore error: \(error.localizedDescription)")
                 completion(false)
                 return
             }
-            
-            if subscriptions?.first?.isActive() ?? false || Apphud.hasActiveSubscription() {
+
+            let hasActive = subscriptions?.contains(where: { $0.isActive() }) ?? false
+            let hasActiveAlt = Apphud.hasActiveSubscription()
+
+            if hasActive || hasActiveAlt {
                 DispatchQueue.main.async {
                     self.isSubscribed = true
                     completion(true)
@@ -131,6 +134,7 @@ class SubscriptionManager: ObservableObject {
             }
         }
     }
+
     
     func getWeeklyPrice(for productId: String) -> String {
         guard let product = productsApphud.first(where: { $0.skProduct?.productIdentifier == productId }) else {

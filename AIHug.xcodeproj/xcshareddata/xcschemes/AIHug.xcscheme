@@ -50,6 +50,9 @@
             ReferencedContainer = "container:AIHug.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../../AIHug/PaymentsHG/HugAIPricing.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

@@ -446,6 +446,12 @@ struct AvatarJobData: Decodable {
     let id: Int
     let status: String
     let jobId: String
-    let avatar: String?
+    let avatar: Avatar?
     let createdAt: String
+}
+
+struct GetAvatarsResponse: Decodable {
+    let error: Bool
+    let message: String?
+    let data: [Avatar]
 }

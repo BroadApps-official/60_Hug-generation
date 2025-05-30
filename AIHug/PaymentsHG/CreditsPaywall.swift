@@ -8,6 +8,8 @@ struct CreditsPaywall: View {
     
     @State private var showCloseButton = false
     @State private var isPurchasing = false
+    @State private var restoreAlert: Bool = false
+    @State private var restoreMessage: String = ""
     
     @State private var subscriptionPlans: [CreditsPlan] = []
     
@@ -147,6 +149,9 @@ struct CreditsPaywall: View {
                     .opacity(showCloseButton ? 1 : 0)
                     .animation(.easeIn(duration: 1), value: showCloseButton)
             )
+            .alert(isPresented: $restoreAlert) {
+                Alert(title: Text("Restore Purchases"), message: Text(restoreMessage), dismissButton: .default(Text("OK")))
+            }
             
         }
     }
@@ -170,6 +175,19 @@ struct CreditsPaywall: View {
             isPurchasing = false
             if success {
                 presentationMode.wrappedValue.dismiss()
+            }
+        }
+    }
+    
+    private func restorePurchases() {
+        subscriptionManager.restorePurchases { success in
+            if success {
+                restoreMessage = "✅ Purchases successfully restored!"
+                restoreAlert = true
+                presentationMode.wrappedValue.dismiss()
+            } else {
+                restoreMessage = "❌ No purchases found to restore."
+                restoreAlert = true
             }
         }
     }

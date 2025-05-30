@@ -1,63 +1,34 @@
 import SwiftUI
 
-class TabBarVisibilityManager: ObservableObject {
-    @Published var isTabBarHidden: Bool = false
-}
-
-extension View {
-    func withTabBarHidden(_ hidden: Bool) -> some View {
-        modifier(TabBarHiddenModifier(hidden: hidden))
-    }
-}
-
-struct TabBarHiddenModifier: ViewModifier {
-    @EnvironmentObject var tabBarVisibility: TabBarVisibilityManager
-    let hidden: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .onAppear { tabBarVisibility.isTabBarHidden = hidden }
-            .onDisappear {
-                if hidden {
-                    tabBarVisibility.isTabBarHidden = false
-                }
-            }
-    }
-}
-
-
 struct CustomTabView: View {
     
     @State private var selectedTabIndex = 0
     @State private var showRateUsSheet = false
     @EnvironmentObject var subscriptionManager: SubscriptionManager
-    @StateObject private var tabBarVisibility = TabBarVisibilityManager()
     @EnvironmentObject var sessionViewModel: UserSessionViewModel
     @State private var isPresented = false
+    @StateObject private var networkMonitor = NetworkMonitor()
+    @State private var showAlert = false
     
     var body: some View {
         ZStack {
             
-            ZStack {
-                switch selectedTabIndex {
-                case 0:
-                    AIVideoView(selectedTabIndex: $selectedTabIndex)
-                        .environmentObject(tabBarVisibility)
-                case 1:
-                    AIPhotoView(selectedTabIndex: $selectedTabIndex)
-                        .environmentObject(tabBarVisibility)
-                case 2:
-                    HistoryView(selectedTabIndex: $selectedTabIndex)
-                        .environmentObject(tabBarVisibility)
-                case 3:
-                    SettingsView(selectedTabIndex: $selectedTabIndex)
-                        .environmentObject(tabBarVisibility)
-                default:
-                    Text("First tab")
+                ZStack {
+                    switch selectedTabIndex {
+                    case 0:
+                        AIVideoView(selectedTabIndex: $selectedTabIndex)
+                    case 1:
+                        AIPhotoView(selectedTabIndex: $selectedTabIndex)
+                    case 2:
+                        HistoryView(selectedTabIndex: $selectedTabIndex)
+                    case 3:
+                        SettingsView(selectedTabIndex: $selectedTabIndex)
+                    default:
+                        Text("First tab")
+                    }
                 }
-            }
             
-            if !tabBarVisibility.isTabBarHidden {
+
                 VStack {
                     Spacer()
                     
@@ -97,13 +68,8 @@ struct CustomTabView: View {
 
                 }
                 .edgesIgnoringSafeArea(.bottom)
-            }
             
-        }
-        .onChange(of: subscriptionManager.isSubscriptionStatusChecked) { checked in
-            if checked && !subscriptionManager.isSubscribed && !showRateUsSheet {
-                isPresented = true
-            }
+            
         }
         .fullScreenCover(isPresented: $isPresented) {
             PayWall()
@@ -111,6 +77,16 @@ struct CustomTabView: View {
         .onAppear {
             checkAppLaunchCount()
             sessionViewModel.loadUserDataIfNeeded()
+        }
+        .onReceive(networkMonitor.$isConnected) { isConnected in
+            if !isConnected {
+                showAlert = true
+            }
+        }
+        .alert("No Internet Connection", isPresented: $showAlert) {
+            Button("ОК", role: .cancel) {
+                showAlert = false
+            }
         }
         .fullScreenCover(isPresented: $showRateUsSheet) {
             CustomRateUsView()
