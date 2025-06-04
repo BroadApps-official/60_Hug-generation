@@ -216,6 +216,7 @@ struct PayWall: View {
     
     private var closeButton: some View {
         Button {
+            subscriptionManager.closePaywall()
             presentationMode.wrappedValue.dismiss()
         } label: {
             Image(systemName: "xmark")

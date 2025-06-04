@@ -11,6 +11,8 @@ class SubscriptionManager: ObservableObject {
     @Published var creditsApphud: [ApphudProduct] = []
     @Published var isSubscribed: Bool = false
     @Published var isSubscriptionStatusChecked = false
+    @Published var currentPaywall: ApphudPaywall?
+
     
     private let paywallID = "main"
     private let avatarPaywallID = "avatar_trial"
@@ -27,6 +29,7 @@ class SubscriptionManager: ObservableObject {
     private func loadProducts() {
         Apphud.paywallsDidLoadCallback { paywalls, error in
             if let paywall = paywalls.first(where: { $0.identifier == self.paywallID }) {
+                self.currentPaywall = paywall
                 Apphud.paywallShown(paywall)
                 let products = paywall.products
                 print("✅ Paywall ID: \(self.paywallID), Products: \(products.map { $0.productId })")
@@ -34,6 +37,15 @@ class SubscriptionManager: ObservableObject {
             } else {
                 print("❌ Paywall with id \(self.paywallID) not found")
             }
+        }
+    }
+    
+    func closePaywall() {
+        if let paywall = currentPaywall {
+            Apphud.paywallClosed(paywall)
+            print("✅ Paywall closed reported to Apphud")
+        } else {
+            print("❌ No active paywall to close")
         }
     }
     
