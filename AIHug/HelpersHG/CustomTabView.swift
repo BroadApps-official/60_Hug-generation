@@ -9,6 +9,7 @@ struct CustomTabView: View {
     @State private var isPresented = false
     @StateObject private var networkMonitor = NetworkMonitor()
     @State private var showAlert = false
+    @State private var didCheckLaunchCount = false
     
     var body: some View {
         ZStack {
@@ -75,8 +76,17 @@ struct CustomTabView: View {
             PayWall()
         }
         .onAppear {
-            checkAppLaunchCount()
             sessionViewModel.loadUserDataIfNeeded()
+            if !didCheckLaunchCount {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if subscriptionManager.isSubscribed == false {
+                        isPresented = true
+                    } else {
+                        checkAppLaunchCount()
+                    }
+                    didCheckLaunchCount = true
+                }
+            }
         }
         .onReceive(networkMonitor.$isConnected) { isConnected in
             if !isConnected {
@@ -98,16 +108,19 @@ struct CustomTabView: View {
         let launchKey = "appLaunchCount"
         let hasRatedKey = "HasRatedApp"
         let userDefaults = UserDefaults.standard
-        
+
         var launchCount = userDefaults.integer(forKey: launchKey)
         launchCount += 1
-        
         userDefaults.set(launchCount, forKey: launchKey)
-        
+
         if launchCount % 3 == 0 && userDefaults.bool(forKey: hasRatedKey) == false {
+            // Каждый третий запуск — Rate Us (если не оценил)
             showRateUsSheet = true
+        } else {
+            if !subscriptionManager.isSubscribed {
+                isPresented = true
+            }
         }
-        
     }
 }
 
